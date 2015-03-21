@@ -1,11 +1,14 @@
 package FlyBy;
 
 use strict;
-use 5.008_005;
+use warnings;
+use 5.010;
 our $VERSION = '0.01';
 
 use Moo;
 
+use Carp qw(croak);
+use Scalar::Util qw(reftype);
 use Set::Scalar;
 
 has index_sets => (
@@ -19,6 +22,26 @@ has records => (
     init_arg => undef,
     default  => sub { []; },
 );
+
+sub add_records {
+    my ($self, @new_records) = @_;
+
+    my $index_sets = $self->index_sets;
+    my $records    = $self->records;
+
+    foreach my $record (@new_records) {
+        my $whatsit = reftype $record // 'no reference';
+        croak 'Records must be hash references, got: ' . $whatsit unless ($whatsit eq 'HASH');
+
+        my $rec_index = $#$records + 1;    # Even if we accidentally made this sparse, we can insert here.
+        $records->[$rec_index] = $record;
+        foreach my $key (keys %$record) {
+            $index_sets->{$key}{$record->{$key}} //= Set::Scalar->new;
+            $index_sets->{$key}{$record->{$key}}->insert($rec_index);
+        }
+    }
+    return 1;
+}
 
 1;
 __END__

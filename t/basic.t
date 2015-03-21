@@ -11,4 +11,13 @@ subtest 'instantiation' => sub {
 
 };
 
+subtest 'add_records' => sub {
+
+    my $default = new_ok('FlyBy');
+    throws_ok { $default->add_records('not', 'like', 'this') } qr/hash references, got: no reference/, 'Cannot add a plain array';
+    throws_ok { $default->add_records(['nor', 'like', 'this']) } qr/hash references, got: ARRAY/, '... nor an array reference';
+    ok $default->add_records({'but' => 'like this'}, {'and' => 'this'}), '... but looking like a hash-ref or more is fine.';
+
+};
+
 done_testing;
