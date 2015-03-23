@@ -26,7 +26,7 @@ has records => (
 has connectors => (
     is       => 'ro',
     init_arg => undef,
-    default  => sub { {'and' => 'intersection', 'or' => 'union'}; },
+    default  => sub { {'and' => 'intersection', 'or' => 'union', 'and not' => 'difference'}; },
 );
 
 sub add_records {

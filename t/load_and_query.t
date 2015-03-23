@@ -54,7 +54,11 @@ subtest 'query' => sub {
     eq_or_diff($fb->query([['lives_in', 'ocean']]), [map { $sample_data{$_} } qw(bw gw hh)], 'Querying for ocean dwellers gets those 3 entries');
     eq_or_diff($fb->query([['lives_in', 'ocean'], ['and', 'food', 'seal']]),
         [$sample_data{gw}], '...but adding in seal-eaters, gets it down to just the one entry');
-    eq_or_diff($fb->query([['lives_in', 'ocean'], ['and', 'food', 'kelp']]), [$sample_data{bw}], '...same with kelp-eaters.');
+    eq_or_diff(
+        $fb->query([['lives_in', 'ocean'], ['and not', 'food', 'seal']]),
+        [map { $sample_data{$_} } qw(bw hh)],
+        '...while dropping the seal-eaters leaves the other two'
+    );
     eq_or_diff(
         $fb->query([['lives_in', 'ocean'], ['and', 'food', 'kelp'], ['or', 'type', 'bear']]),
         [map { $sample_data{$_} } qw(bb bw pb)],
