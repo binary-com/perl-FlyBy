@@ -20,4 +20,20 @@ subtest 'add_records' => sub {
 
 };
 
+subtest 'query parameters' => sub {
+
+    my $default = new_ok('FlyBy');
+    throws_ok { $default->query() } qr/array reference/, 'Query needs some clauses';
+    throws_ok { $default->query('a', 'b') } qr/array reference/, '...given as an array reference';
+    throws_ok { $default->query([]) } qr/a bare match/, '...a non-empty array reference';
+    throws_ok { $default->query(['a', 'b', 'c']) } qr/a bare match/, '...with the first clause as a bare match.';
+    ok $default->query([['a', 'b']]), '...perhaps like this.';
+    throws_ok { $default->query([['a', 'b'], ['c', 'd']]) } qr/connector and match/,
+        'More complex queries need connector and match for additional clauses';
+    throws_ok { $default->query([['a', 'b'], ['connector', 'c', 'd']]) } qr/connector and match/,
+        '...which includes a valid connector as the first term';
+    ok $default->query([['a', 'b'], ['or', 'c', 'd']]), '...something like this.';
+
+};
+
 done_testing;

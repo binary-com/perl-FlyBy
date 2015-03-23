@@ -50,6 +50,17 @@
       }
    },
    "release_status" : "stable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/binary-com/perl-FlyBy/issues"
+      },
+      "homepage" : "https://github.com/binary-com/perl-FlyBy",
+      "repository" : {
+         "type" : "git",
+         "url" : "https://github.com/binary-com/perl-FlyBy.git",
+         "web" : "https://github.com/binary-com/perl-FlyBy"
+      }
+   },
    "version" : "0.01"
 }
 
