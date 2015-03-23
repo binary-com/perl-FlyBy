@@ -33,7 +33,9 @@ subtest 'query parameters' => sub {
     throws_ok { $default->query([['a', 'b'], ['connector', 'c', 'd']]) } qr/connector and match/,
         '...which includes a valid connector as the first term';
     ok $default->query([['a', 'b'], ['or', 'c', 'd']]), '...something like this.';
-
+    throws_ok { $default->query([['a', 'b'], ['or', 'c', 'd']], 'a') } qr/non-empty array/, 'Queries with reductions show have an array ref';
+    throws_ok { $default->query([['a', 'b'], ['or', 'c', 'd']], []) } qr/non-empty array/, '...a non-empty array ref';
+    ok $default->query([['a', 'b'], ['or', 'c', 'd']], ['a']), '...a bit like this, maybe.';
 };
 
 done_testing;

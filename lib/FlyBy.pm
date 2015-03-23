@@ -58,17 +58,19 @@ sub _from_index {
 }
 
 sub query {
-    my ($self, $clauses) = @_;
+    my ($self, $query_clauses, $reduce_clause) = @_;
 
-    croak 'Query clauses should be an array reference.' unless ($clauses and (reftype($clauses) // '') eq 'ARRAY');
+    croak 'Query clauses should be an array reference.' unless ($query_clauses and (reftype($query_clauses) // '') eq 'ARRAY');
+    croak 'Reduce clause should be a non-empty array reference.'
+        unless (not $reduce_clause or ((reftype($reduce_clause) // '') eq 'ARRAY' and scalar @$reduce_clause));
 
-    my $start = shift @$clauses;                         # This one is special, because it defines the initial set.
+    my $start = shift @$query_clauses;    # This one is special, because it defines the initial set.
     croak 'Initial query clause must be a bare match' unless ($self->_is_a_query_matcher($start));
 
     my $index_sets = $self->index_sets;
     my $match_set = $self->_from_index($start->[0], $start->[1]);
 
-    foreach my $addl_clause (@$clauses) {
+    foreach my $addl_clause (@$query_clauses) {
         croak 'Additional query clauses must have a connector and match in an array reference' unless ($self->_is_a_clause($addl_clause));
         my ($connector, $key, $value) = @$addl_clause;
         my $method = $self->connectors->{$connector};
@@ -76,8 +78,28 @@ sub query {
     }
 
     my $records = $self->records;
+    # Sort may ony be important for testing.  Reconsider if large slow sets appear.
+    my @indices = sort { $a <=> $b } ($match_set->elements);
+    my @results;
 
-    return [map { $records->[$_] } sort { $a <=> $b } ($match_set->elements)];
+    if ($reduce_clause) {
+        my @keys      = @$reduce_clause;
+        my $key_count = scalar @keys;
+        my %seen;
+        foreach my $idx (@indices) {
+            my @reduced_element = map { ($records->[$idx]->{$_} // '') } @keys;
+            my $seen_key = join('->', @reduced_element);
+            if (not $seen{$seen_key}) {
+                push @results, ($key_count > 1) ? \@reduced_element : @reduced_element;
+                $seen{$seen_key}++;
+            }
+        }
+    } else {
+        # They get everything, sort simplifies testing, not sure if I care.
+        @results = map { $records->[$_] } @indices;
+    }
+
+    return \@results;
 }
 
 sub _is_a_clause {
