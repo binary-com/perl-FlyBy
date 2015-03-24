@@ -42,7 +42,7 @@ sub add_records {
         my $rec_index = $#$records + 1;    # Even if we accidentally made this sparse, we can insert here.
         $records->[$rec_index] = $record;
         while (my ($k, $v) = each %$record) {
-            $self->_from_index($k, $v)->insert($rec_index);
+            $self->_from_index($k, $v, 1)->insert($rec_index);
         }
     }
 
@@ -50,11 +50,19 @@ sub add_records {
 }
 
 sub _from_index {
-    my ($self, $key, $value) = @_;
+    my ($self, $key, $value, $add_missing_key) = @_;
     my $index_sets = $self->index_sets;
-    $index_sets->{$key}{$value} //= Set::Scalar->new;    # Sets which do not (yet) exist in the index are null.
 
-    return $index_sets->{$key}{$value};
+    my $result;
+
+    if (not $add_missing_key and not exists $index_sets->{$key}) {
+        $result = Set::Scalar->new;    # Avoiding auto-vi on request
+    } else {
+        $index_sets->{$key}{$value} //= Set::Scalar->new;    # Sets which do not (yet) exist in the index are null.
+        $result = $index_sets->{$key}{$value};
+    }
+
+    return $result;
 }
 
 sub query {
@@ -64,17 +72,17 @@ sub query {
     croak 'Reduce list should be a non-empty array reference.'
         unless (not $reduce_list or ((reftype($reduce_list) // '') eq 'ARRAY' and scalar @$reduce_list));
 
-    my $start = shift @$query_clauses;                   # This one is special, because it defines the initial set.
+    my $start = shift @$query_clauses;    # This one is special, because it defines the initial set.
     croak 'Initial query clause must be a bare match' unless ($self->_is_a_query_matcher($start));
 
     my $index_sets = $self->index_sets;
-    my $match_set = $self->_from_index($start->[0], $start->[1]);
+    my $match_set = $self->_from_index($start->[0], $start->[1], 0);
 
     foreach my $addl_clause (@$query_clauses) {
         croak 'Additional query clauses must have a combine operation and match in an array reference' unless ($self->_is_a_clause($addl_clause));
         my ($combine, $key, $value) = @$addl_clause;
         my $method = $self->combine_operations->{$combine};
-        $match_set = $match_set->$method($self->_from_index($key, $value));
+        $match_set = $match_set->$method($self->_from_index($key, $value, 0));
     }
 
     my $records = $self->records;
