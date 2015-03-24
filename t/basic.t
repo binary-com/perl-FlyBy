@@ -28,12 +28,12 @@ subtest 'query parameters' => sub {
     throws_ok { $default->query([]) } qr/a bare match/, '...a non-empty array reference';
     throws_ok { $default->query(['a', 'b', 'c']) } qr/a bare match/, '...with the first clause as a bare match.';
     ok $default->query([['a', 'b']]), '...perhaps like this.';
-    throws_ok { $default->query([['a', 'b'], ['c', 'd']]) } qr/connector and match/,
-        'More complex queries need connector and match for additional clauses';
-    throws_ok { $default->query([['a', 'b'], ['connector', 'c', 'd']]) } qr/connector and match/,
-        '...which includes a valid connector as the first term';
+    throws_ok { $default->query([['a', 'b'], ['c', 'd']]) } qr/combine operation and match/,
+        'More complex queries need combine operation and match for additional clauses';
+    throws_ok { $default->query([['a', 'b'], ['combine operation', 'c', 'd']]) } qr/combine operation and match/,
+        '...which includes a valid combine operation as the first term';
     ok $default->query([['a', 'b'], ['or', 'c', 'd']]), '...something like this.';
-    throws_ok { $default->query([['a', 'b'], ['or', 'c', 'd']], 'a') } qr/non-empty array/, 'Queries with reductions show have an array ref';
+    throws_ok { $default->query([['a', 'b'], ['or', 'c', 'd']], 'a') } qr/non-empty array/, 'Queries with reductions shoould have an array ref';
     throws_ok { $default->query([['a', 'b'], ['or', 'c', 'd']], []) } qr/non-empty array/, '...a non-empty array ref';
     ok $default->query([['a', 'b'], ['or', 'c', 'd']], ['a']), '...a bit like this, maybe.';
 };
