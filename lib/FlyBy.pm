@@ -3,7 +3,7 @@ package FlyBy;
 use strict;
 use warnings;
 use 5.010;
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Moo;
 
@@ -130,6 +130,16 @@ sub _is_a_query_matcher {
     return $whatsit && $whatsit eq 'ARRAY' && scalar @$thing == 2;
 }
 
+sub all_keys {
+    my $self = shift;
+    return [sort { $a cmp $b } keys %{$self->index_sets}];
+}
+
+sub values_for_key {
+    my ($self, $key) = @_;
+    return [sort { $a cmp $b } keys %{$self->index_sets->{$key}}];
+}
+
 1;
 __END__
 
@@ -169,7 +179,6 @@ Supply one or more hash references to be added to the store.
 
 =item query
 
-
   $fb->query([['key','value'], ['and', 'otherkey', 'othervalue']], ['field']);
 
 The first parameter is an array-ref of matching clauses.  The first
@@ -183,6 +192,14 @@ return value from an array of hash references to an array of array
 references (or a simple array of strings, in the single field case.)
 
 Will `croak` on improperly supplied query formats.
+
+=item all_keys
+
+Returns an array reference with all known keys against which one might query.
+
+=item values_for_key
+
+Returns an array reference of all known values for a given key.
 
 =back
 

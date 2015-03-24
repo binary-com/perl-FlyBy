@@ -70,9 +70,19 @@ subtest 'query' => sub {
 
 subtest 'query with reduction' => sub {
     eq_or_diff($fb->query([['breathes_with', 'lungs']], ['lives_in']), [], 'Querying against a key which does not exist gives an empty set.');
-    eq_or_diff($fb->query([['type', 'bear']], ['lives_in']), ['forest',  'arctic'], 'Where do all the bears live?');
-    eq_or_diff($fb->query([['food', 'seal']], ['type','lives_in']), [[ 'shark',  'ocean'], ['bear', 'arctic']], 'What types of things eat seals and where to they live?');
+    eq_or_diff($fb->query([['type', 'bear']], ['lives_in']), ['forest', 'arctic'], 'Where do all the bears live?');
+    eq_or_diff(
+        $fb->query([['food', 'seal']], ['type', 'lives_in']),
+        [['shark', 'ocean'], ['bear', 'arctic']],
+        'What types of things eat seals and where to they live?'
+    );
 
+};
+
+subtest 'keys and values' => sub {
+    ;
+    eq_or_diff($fb->all_keys, ['called', 'food', 'lives_in', 'type'], 'Proper vaguely introspective list of keys');
+    eq_or_diff($fb->values_for_key('type'), ['bear', 'shark', 'whale'], 'Proper vaguely introspective list of values for `type` key');
 };
 
 done_testing;

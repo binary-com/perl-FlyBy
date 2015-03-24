@@ -44,6 +44,14 @@ exist in a traditional datastore at runtime
 
     Will \`croak\` on improperly supplied query formats.
 
+- all\_keys
+
+    Returns an array reference with all known keys against which one might query.
+
+- values\_for\_key
+
+    Returns an array reference of all known values for a given key.
+
 # CAVEATS
 
 This software is in an early state. The internal representation and
