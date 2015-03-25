@@ -49,30 +49,30 @@ subtest 'load' => sub {
 };
 
 subtest 'query' => sub {
-    eq_or_diff($fb->query([['breathes_with', 'lungs']]), [], 'Querying against a key which does not exist gives an empty set.');
-    eq_or_diff($fb->query([['called', 'black bear']]), [$sample_data{bb}], 'Querying for a unique key gets just that entry');
-    eq_or_diff($fb->query([['lives_in', 'ocean']]), [map { $sample_data{$_} } qw(bw gw hh)], 'Querying for ocean dwellers gets those 3 entries');
-    eq_or_diff($fb->query([['lives_in', 'ocean'], ['and', 'food', 'seal']]),
+    eq_or_diff($fb->query("'breathes_with' is 'lungs'"), [], 'Querying against a key which does not exist gives an empty set.');
+    eq_or_diff($fb->query("'called' IS 'black bear'"), [$sample_data{bb}], 'Querying for a unique key gets just that entry');
+    eq_or_diff($fb->query("'lives_in' is 'ocean'"), [map { $sample_data{$_} } qw(bw gw hh)], 'Querying for ocean dwellers gets those 3 entries');
+    eq_or_diff($fb->query("'lives_in' is 'ocean' AND 'food' is 'seal'"),
         [$sample_data{gw}], '...but adding in seal-eaters, gets it down to just the one entry');
     eq_or_diff(
-        $fb->query([['lives_in', 'ocean'], ['and not', 'food', 'seal']]),
+        $fb->query("'lives_in' is 'ocean' AND NOT 'food' is 'seal'"),
         [map { $sample_data{$_} } qw(bw hh)],
         '...while dropping the seal-eaters leaves the other two'
     );
     eq_or_diff(
-        $fb->query([['lives_in', 'ocean'], ['and', 'food', 'kelp'], ['or', 'type', 'bear']]),
+        $fb->query("'lives_in' IS 'ocean' AND 'food' IS 'kelp' OR 'type' IS 'bear'"),
         [map { $sample_data{$_} } qw(bb bw pb)],
         'Ordering of clauses is important'
     );
-    eq_or_diff($fb->query([['lives_in', 'ocean'], ['or', 'type', 'bear'], ['and', 'food', 'kelp']]),
+    eq_or_diff($fb->query("'lives_in' IS 'ocean' OR 'type' IS 'bear' AND 'food' IS 'kelp'"),
         [$sample_data{bw}], '...because they are applied in order against the results');
 };
 
 subtest 'query with reduction' => sub {
-    eq_or_diff($fb->query([['breathes_with', 'lungs']], ['lives_in']), [], 'Querying against a key which does not exist gives an empty set.');
-    eq_or_diff($fb->query([['type', 'bear']], ['lives_in']), ['forest', 'arctic'], 'Where do all the bears live?');
+    eq_or_diff($fb->query("'breathes_with' IS 'lungs' -> 'lives_in'"), [], 'Querying against a key which does not exist gives an empty set.');
+    eq_or_diff($fb->query("'type' IS 'bear' -> 'lives_in'"), ['forest', 'arctic'], 'Where do all the bears live?');
     eq_or_diff(
-        $fb->query([['food', 'seal']], ['type', 'lives_in']),
+        $fb->query("'food' is 'seal' -> 'type', 'lives_in'"),
         [['shark', 'ocean'], ['bear', 'arctic']],
         'What types of things eat seals and where to they live?'
     );

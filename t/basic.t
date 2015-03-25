@@ -20,22 +20,13 @@ subtest 'add_records' => sub {
 
 };
 
-subtest 'query parameters' => sub {
+subtest 'query syntax' => sub {
 
     my $default = new_ok('FlyBy');
-    throws_ok { $default->query() } qr/array reference/, 'Query needs some clauses';
-    throws_ok { $default->query('a', 'b') } qr/array reference/, '...given as an array reference';
-    throws_ok { $default->query([]) } qr/a bare match/, '...a non-empty array reference';
-    throws_ok { $default->query(['a', 'b', 'c']) } qr/a bare match/, '...with the first clause as a bare match.';
-    ok $default->query([['a', 'b']]), '...perhaps like this.';
-    throws_ok { $default->query([['a', 'b'], ['c', 'd']]) } qr/combine operation and match/,
-        'More complex queries need combine operation and match for additional clauses';
-    throws_ok { $default->query([['a', 'b'], ['combine operation', 'c', 'd']]) } qr/combine operation and match/,
-        '...which includes a valid combine operation as the first term';
-    ok $default->query([['a', 'b'], ['or', 'c', 'd']]), '...something like this.';
-    throws_ok { $default->query([['a', 'b'], ['or', 'c', 'd']], 'a') } qr/non-empty array/, 'Queries with reductions shoould have an array ref';
-    throws_ok { $default->query([['a', 'b'], ['or', 'c', 'd']], []) } qr/non-empty array/, '...a non-empty array ref';
-    ok $default->query([['a', 'b'], ['or', 'c', 'd']], ['a']), '...a bit like this, maybe.';
+    throws_ok { $default->query() } qr/Empty/, 'Query needs some clauses';
+    ok $default->query("'a' IS 'b'"), '...perhaps like this.';
+    throws_ok { $default->query("'a' IS 'b' AND 'c' ISNT 'd'") } qr/can't analyze/, 'ISNT does not exist';
+    ok $default->query("'a' IS 'b' OR  'c' is 'd' -> 'a'"), 'Can do a reduction';
 };
 
 done_testing;

@@ -8,8 +8,10 @@ our $VERSION = '0.02';
 use Moo;
 
 use Carp qw(croak);
+use Parse::Lex;
 use Scalar::Util qw(reftype);
 use Set::Scalar;
+use Try::Tiny;
 
 has index_sets => (
     is       => 'ro',
@@ -26,7 +28,14 @@ has records => (
 has combine_operations => (
     is       => 'ro',
     init_arg => undef,
-    default  => sub { {'and' => 'intersection', 'or' => 'union', 'and not' => 'difference'}; },
+    default  => sub { {'AND' => 'intersection', 'OR' => 'union', 'ANDNOT' => 'difference'}; },
+);
+
+has query_lexer => (
+    is       => 'ro',
+    init_arg => undef,
+    lazy     => 1,
+    builder  => '_build_query_lexer',
 );
 
 sub add_records {
@@ -66,22 +75,19 @@ sub _from_index {
 }
 
 sub query {
-    my ($self, $query_clauses, $reduce_list) = @_;
+    my ($self, $query) = @_;
 
-    croak 'Query clauses should be an array reference.' unless ($query_clauses and (reftype($query_clauses) // '') eq 'ARRAY');
-    croak 'Reduce list should be a non-empty array reference.'
-        unless (not $reduce_list or ((reftype($reduce_list) // '') eq 'ARRAY' and scalar @$reduce_list));
+    my ($query_clauses, $reduce_list, $err) = $self->parse_query($query);
+
+    croak $err if $err;
 
     my $start = shift @$query_clauses;    # This one is special, because it defines the initial set.
-    croak 'Initial query clause must be a bare match' unless ($self->_is_a_query_matcher($start));
 
     my $index_sets = $self->index_sets;
     my $match_set = $self->_from_index($start->[0], $start->[1], 0);
 
     foreach my $addl_clause (@$query_clauses) {
-        croak 'Additional query clauses must have a combine operation and match in an array reference' unless ($self->_is_a_clause($addl_clause));
-        my ($combine, $key, $value) = @$addl_clause;
-        my $method = $self->combine_operations->{$combine};
+        my ($method, $key, $value) = @$addl_clause;
         $match_set = $match_set->$method($self->_from_index($key, $value, 0));
     }
 
@@ -110,24 +116,73 @@ sub query {
     return \@results;
 }
 
-sub _is_a_clause {
-    my ($self, $thing) = @_;
+sub parse_query {
+    my ($self, $query) = @_;
 
-    my $valid;
-    my $whatsit = reftype $thing;
-    if ($whatsit && $whatsit eq 'ARRAY' && scalar @$thing == 3) {
-        $valid = $self->combine_operations->{$thing->[0]};    # First entry should be the operation.
+    my (%values, $err);
+    my $lexer = $self->query_lexer;
+    my $parse_err = sub { return 'Improper query at: ' . shift; };
+
+    try {
+        croak 'Empty query' unless $query;
+        my @clause    = ();
+        my @tokens    = $lexer->analyze($query);
+        my $in_reduce = 0;
+        $values{query} = [];
+        TOKEN:
+        while (my $name = shift @tokens) {
+            my $text = shift @tokens;
+            # We must be done.
+            if ($name eq 'EOI') {
+                if (@clause and $in_reduce) {
+                    $values{reduce} = [@clause];
+                } elsif (@clause) {
+                    push @{$values{query}}, [@clause];
+                }
+
+                last TOKEN;
+            }
+            next TOKEN if ($name eq 'COMMA');    # They can put commas anywhere, we don't care.
+            my $expected_length = (scalar @{$values{query}}) ? 3 : 2;
+            if ($name =~ /_STRING$/) {
+                push @clause, substr($text, 1, -1);
+            } elsif (my $method = $self->combine_operations->{$name}) {
+                croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length);
+                push @{$values{query}}, [@clause];
+                @clause = ($method);             # Starting a new clause.
+            } elsif ($name eq 'EQUAL') {
+                croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length - 1);
+            } elsif ($name eq 'REDUCE') {
+                croak $parse_err->($text) if ($in_reduce);
+                $in_reduce = 1;
+                push @{$values{query}}, [@clause] if (@clause);
+                @clause = ();
+            }
+        }
     }
+    catch {
+        $err = $_;
+    };
 
-    return $valid;
+    return $values{query}, $values{reduce}, $err;
 }
 
-sub _is_a_query_matcher {
-    my ($self, $thing) = @_;
+sub _build_query_lexer {
+    my $self = shift;
 
-    my $whatsit = reftype $thing;
+    my @tokens = (
+        "ANDNOT"    => "(and not|AND NOT)",
+        "EQUAL"     => "is|IS",
+        "AND"       => "and|AND",
+        "OR"        => "or|OR",
+        "REDUCE"    => "->",
+        "COMMA"     => ",",
+        "SQ_STRING" => [qw(" (?:[^"]+|"")* ")],
+        "DQ_STRING" => [qw(\' (?:[^\']+|\'\')* \')],
+        "ERROR"     => ".*",
+        sub { die qq!can\'t analyze: "$_[1]"!; });
 
-    return $whatsit && $whatsit eq 'ARRAY' && scalar @$thing == 2;
+    return Parse::Lex->new(@tokens);
 }
 
 sub all_keys {

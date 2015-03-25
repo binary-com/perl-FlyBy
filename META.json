@@ -38,7 +38,9 @@
       "runtime" : {
          "requires" : {
             "Moo" : "1.006001",
+            "Parse::Lex" : "2.21",
             "Set::Scalar" : "1.29",
+            "Try::Tiny" : "0.19",
             "perl" : "5.001000"
          }
       },
