@@ -2,6 +2,10 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.04  2015-03-26 08:12:12 CAT
+        - Improve quoting regex portability
+        - Change analysis error message
+
 0.03  2015-03-26 06:23:56 CAT
         - Improve query syntax friendliness with string queries
         - Methods return arrays instead of references
