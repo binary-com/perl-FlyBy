@@ -2,6 +2,10 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.03  2015-03-26 06:23:56 CAT
+        - Improve query syntax friendliness with string queries
+        - Methods return arrays instead of references
+
 0.02  2015-03-24 10:23:16 CAT
         - Correct autovivification issue on query
         - Add ability to introspect on keys and values
