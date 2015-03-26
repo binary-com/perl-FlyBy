@@ -144,7 +144,7 @@ sub parse_query {
             }
             next TOKEN if ($name eq 'COMMA');    # They can put commas anywhere, we don't care.
             my $expected_length = (scalar @{$values{query}}) ? 3 : 2;
-            if ($name =~ /_STRING$/) {
+            if ($name eq 'QUOTED_STRING') {
                 push @clause, substr($text, 1, -1);
             } elsif (my $method = $self->combine_operations->{$name}) {
                 croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length);
@@ -171,16 +171,15 @@ sub _build_query_lexer {
     my $self = shift;
 
     my @tokens = (
-        "ANDNOT"    => "(and not|AND NOT)",
-        "EQUAL"     => "is|IS",
-        "AND"       => "and|AND",
-        "OR"        => "or|OR",
-        "REDUCE"    => "->",
-        "COMMA"     => ",",
-        "SQ_STRING" => [qw(" (?:[^"]+|"")* ")],
-        "DQ_STRING" => [qw(\' (?:[^\']+|\'\')* \')],
-        "ERROR"     => ".*",
-        sub { die qq!can\'t analyze: "$_[1]"!; });
+        "ANDNOT"        => "(and not|AND NOT)",
+        "EQUAL"         => "is|IS",
+        "AND"           => "and|AND",
+        "OR"            => "or|OR",
+        "REDUCE"        => "->",
+        "COMMA"         => ",",
+        "QUOTED_STRING" => qq~(?:\'(?:[^\\\']*(?:\\.[^\\\']*)*)\'|\"(?:[^\\\"]*(?:\\.[^\\\"]*)*)\")~, # From Text::Balanced
+        "ERROR"         => ".*",
+        sub { die qq!cannot analyze: "$_[1]"!; });
 
     return Parse::Lex->new(@tokens);
 }

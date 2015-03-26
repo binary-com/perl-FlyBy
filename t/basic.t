@@ -24,7 +24,7 @@ subtest 'query syntax' => sub {
 
     my $default = new_ok('FlyBy');
     throws_ok { $default->query() } qr/Empty/, 'Query needs some clauses';
-    throws_ok { $default->query("'a' IS 'b' AND 'c' ISNT 'd'") } qr/can't analyze/, 'ISNT does not exist';
+    throws_ok { $default->query("'a' IS 'b' AND 'c' ISNT 'd'") } qr/cannot analyze/, 'ISNT does not exist';
 };
 
 done_testing;

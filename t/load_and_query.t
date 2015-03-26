@@ -51,6 +51,7 @@ subtest 'load' => sub {
 subtest 'query' => sub {
     eq_or_diff([$fb->query("'breathes_with' is 'lungs'")], [], 'Querying against a key which does not exist gives an empty set.');
     eq_or_diff([$fb->query("'called' IS 'black bear'")], [$sample_data{bb}], 'Querying for a unique key gets just that entry');
+    eq_or_diff([$fb->query('"called" IS "black bear"')], [$sample_data{bb}], 'Quoting can work either way');
     eq_or_diff([$fb->query("'lives_in' is 'ocean'")], [map { $sample_data{$_} } qw(bw gw hh)], 'Querying for ocean dwellers gets those 3 entries');
     eq_or_diff([$fb->query("'lives_in' is 'ocean' AND 'food' is 'seal'")],
         [$sample_data{gw}], '...but adding in seal-eaters, gets it down to just the one entry');
