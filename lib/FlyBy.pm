@@ -113,7 +113,7 @@ sub query {
         @results = map { $records->[$_] } @indices;
     }
 
-    return \@results;
+    return @results;
 }
 
 sub parse_query {
@@ -187,12 +187,12 @@ sub _build_query_lexer {
 
 sub all_keys {
     my $self = shift;
-    return [sort { $a cmp $b } keys %{$self->index_sets}];
+    return (sort { $a cmp $b } keys %{$self->index_sets});
 }
 
 sub values_for_key {
     my ($self, $key) = @_;
-    return [sort { $a cmp $b } keys %{$self->index_sets->{$key}}];
+    return (sort { $a cmp $b } keys %{$self->index_sets->{$key}});
 }
 
 1;
