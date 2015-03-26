@@ -234,27 +234,33 @@ Supply one or more hash references to be added to the store.
 
 =item query
 
-  $fb->query([['key','value'], ['and', 'otherkey', 'othervalue']], ['field']);
+  $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
 
-The first parameter is an array-ref of matching clauses.  The first
-one should be a simple match.  The others should tell how to combine
-the following match with the previous matches.  The available
-combining operations are  `and', `or` and `and not`.
+The query parameters are joined with `IS` for equality testing.
 
-The second parameter is a list of reducing fields which reduces the
-result to unique values of the supplied fields.  It also changes the
-return value from an array of hash references to an array of array
-references (or a simple array of strings, in the single field case.)
+Multiple clauses are joined with an operation (one of: `AND`,
+`OR`, `AND NOT`) to indicate how to combine the results.  Please
+note that they are evaluated in the supplied order which is
+significant to the results.
+
+The optional reductions are prefaced with `->`.
+
+If no reduction is provided a list of the full record hash
+references is returned.
+If a reduction list of length 1 is provided, a list of the distinct
+values for the matching key is returned.
+If a longer reduction list is provided, a list of distinct value
+array references (in the provided key order) is returned.
 
 Will `croak` on improperly supplied query formats.
 
 =item all_keys
 
-Returns an array reference with all known keys against which one might query.
+Returns an array with all known keys against which one might query.
 
 =item values_for_key
 
-Returns an array reference of all known values for a given key.
+Returns an array of all known values for a given key.
 
 =back
 
