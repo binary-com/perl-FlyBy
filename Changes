@@ -2,6 +2,9 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.05  2015-03-29 12:37:19 CAT
+        - Revive perl datastructure queries with minor changes
+
 0.04  2015-03-26 08:12:12 CAT
         - Improve quoting regex portability
         - Change analysis error message
