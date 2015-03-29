@@ -30,23 +30,40 @@ exist in a traditional datastore at runtime
 
 - query
 
-        $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
+    - string
 
-    The query parameters are joined with \`IS\` for equality testing.
+            $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
 
-    Multiple clauses are joined with an operation (one of: \`AND\`,
-    \`OR\`, \`AND NOT\`) to indicate how to combine the results.  Please
-    note that they are evaluated in the supplied order which is
-    significant to the results.
+        The query parameters are joined with \`IS\` for equality testing.
 
-    The optional reductions are prefaced with \`->\`.
+        Multiple clauses are joined with an operation (one of: \`AND\`,
+        \`OR\`, \`AND NOT\`) to indicate how to combine the results.  Please
+        note that they are evaluated in the supplied order which is
+        significant to the results.
 
-    If no reduction is provided a list of the full record hash
-    references is returned.
-    If a reduction list of length 1 is provided, a list of the distinct
-    values for the matching key is returned.
-    If a longer reduction list is provided, a list of distinct value
-    array references (in the provided key order) is returned.
+        The optional reductions are prefaced with \`->\`.
+
+        If no reduction is provided a list of the full record hash
+        references is returned.
+        If a reduction list of length 1 is provided, a list of the distinct
+        values for the matching key is returned.
+        If a longer reduction list is provided, a list of distinct value
+        array references (in the provided key order) is returned.
+
+    - raw
+
+            $fb->query([['type' => 'shark'],  ['and', 'food' => 'seal']], ['called', 'lives_in']");
+
+        The query clause is supplied as an array reference of array references.
+
+        The first query clause is supplied as an array reference with key
+        and value elements.
+
+        Any subsequent clauses are three elements long with a preceding
+        combine operation.  Valid operations are 'and', 'or', 'andnot'.
+
+        A second optional reduction list of strings may be provided which
+        reduces the result as above.
 
     Will \`croak\` on improperly supplied query formats.
 

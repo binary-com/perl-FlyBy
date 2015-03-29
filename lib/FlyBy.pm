@@ -38,6 +38,23 @@ has query_lexer => (
     builder  => '_build_query_lexer',
 );
 
+sub _build_query_lexer {
+    my $self = shift;
+
+    my @tokens = (
+        "ANDNOT"        => "(and not|AND NOT)",
+        "EQUAL"         => "is|IS",
+        "AND"           => "and|AND",
+        "OR"            => "or|OR",
+        "REDUCE"        => "->",
+        "COMMA"         => ",",
+        "QUOTED_STRING" => qq~(?:\'(?:[^\\\']*(?:\\.[^\\\']*)*)\'|\"(?:[^\\\"]*(?:\\.[^\\\"]*)*)\")~,    # From Text::Balanced
+        "ERROR"         => ".*",
+        sub { die qq!cannot analyze: "$_[1]"!; });
+
+    return Parse::Lex->new(@tokens);
+}
+
 sub add_records {
     my ($self, @new_records) = @_;
 
@@ -75,11 +92,24 @@ sub _from_index {
 }
 
 sub query {
-    my ($self, $query) = @_;
+    my ($self, $query_clauses, $reduce_list) = @_;
 
-    my ($query_clauses, $reduce_list, $err) = $self->parse_query($query);
-
-    croak $err if $err;
+    if (not reftype($query_clauses)) {
+        my $err; # To let us notice parsing errors;
+        # Should be a single query string
+        croak 'String queries should have a single parameter' if (defined $reduce_list);
+        ($query_clauses, $reduce_list, $err) = $self->parse_query($query_clauses);
+        croak $err if $err;
+    } else {
+        # Should be in our 'raw' datastructure format.
+        # Trust the parser above, so we only verify on 'hand-made' queries.
+        croak 'Query clauses should be a non-empty array reference.' unless ($query_clauses and (reftype($query_clauses) // '') eq 'ARRAY' and @$query_clauses);
+        for my $i (0 .. $#{$query_clauses}) {
+            croak 'Improperly specified data structure for query clause ' . $i unless ($self->_check_and_update_clause($query_clauses->[$i], $i));
+        }
+        croak 'Reduce list should be a non-empty array reference.'
+            unless (not $reduce_list or ((reftype($reduce_list) // '') eq 'ARRAY' and scalar @$reduce_list));
+    }
 
     my $start = shift @$query_clauses;    # This one is special, because it defines the initial set.
 
@@ -167,21 +197,21 @@ sub parse_query {
     return $values{query}, $values{reduce}, $err;
 }
 
-sub _build_query_lexer {
-    my $self = shift;
+sub _check_and_update_clause {
+    my ($self, $thing, $pos) = @_;
 
-    my @tokens = (
-        "ANDNOT"        => "(and not|AND NOT)",
-        "EQUAL"         => "is|IS",
-        "AND"           => "and|AND",
-        "OR"            => "or|OR",
-        "REDUCE"        => "->",
-        "COMMA"         => ",",
-        "QUOTED_STRING" => qq~(?:\'(?:[^\\\']*(?:\\.[^\\\']*)*)\'|\"(?:[^\\\"]*(?:\\.[^\\\"]*)*)\")~, # From Text::Balanced
-        "ERROR"         => ".*",
-        sub { die qq!cannot analyze: "$_[1]"!; });
+    my $valid;
+    my $whatsit = reftype $thing;
+    if ($whatsit and $whatsit eq 'ARRAY') {
+        if ($pos == 0) {
+            $valid = (scalar @$thing == 2);
+        } elsif (scalar @$thing == 3) {
+            $thing->[0] = $self->combine_operations->{uc $thing->[0]};    # First entry should be the operation.
+            $valid = $thing->[0];
+        }
+    }
 
-    return Parse::Lex->new(@tokens);
+    return $valid;
 }
 
 sub all_keys {
@@ -233,6 +263,10 @@ Supply one or more hash references to be added to the store.
 
 =item query
 
+=over
+
+=item string
+
   $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
 
 The query parameters are joined with `IS` for equality testing.
@@ -250,6 +284,23 @@ If a reduction list of length 1 is provided, a list of the distinct
 values for the matching key is returned.
 If a longer reduction list is provided, a list of distinct value
 array references (in the provided key order) is returned.
+
+=item raw
+
+  $fb->query([['type' => 'shark'],  ['and', 'food' => 'seal']], ['called', 'lives_in']");
+
+The query clause is supplied as an array reference of array references.
+
+The first query clause is supplied as an array reference with key
+and value elements.
+
+Any subsequent clauses are three elements long with a preceding
+combine operation.  Valid operations are 'and', 'or', 'andnot'.
+
+A second optional reduction list of strings may be provided which
+reduces the result as above.
+
+=back
 
 Will `croak` on improperly supplied query formats.
 
@@ -285,5 +336,6 @@ Copyright 2015- Binary.com
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
+
 
 =cut
