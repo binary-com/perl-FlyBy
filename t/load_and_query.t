@@ -83,7 +83,7 @@ subtest 'query' => sub {
             [map { $sample_data{$_} } qw(bw gw hh)],
             'Querying for ocean dwellers gets those 3 entries'
         );
-        eq_or_diff($fb->query([['lives_in' => 'ocean'], ['and', 'food' => 'seal']]),
+        eq_or_diff([$fb->query([['lives_in' => 'ocean'], ['and', 'food' => 'seal']])],
             [$sample_data{gw}], '...but adding in seal-eaters, gets it down to just the one entry');
         eq_or_diff(
             [$fb->query([['lives_in' => 'ocean'], ['andnot', 'food' => 'seal']])],
