@@ -1,6 +1,8 @@
 Revision history for FlyBy
 
 {{$NEXT}}
+
+0.060  2015-04-03 18:06:53 CAT
         - Add support for negative matching (`!` or `IS NOT`)
 
 0.051  2015-03-29 13:02:21 CAT
