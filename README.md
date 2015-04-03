@@ -34,7 +34,8 @@ exist in a traditional datastore at runtime
 
             $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
 
-        The query parameters are joined with \`IS\` for equality testing.
+        The query parameters are joined with \`IS\` for equality testing, or
+        \`IS NOT\` for its inverse.
 
         Multiple clauses are joined with an operation (one of: \`AND\`,
         \`OR\`, \`AND NOT\`) to indicate how to combine the results.  Please
@@ -59,6 +60,9 @@ exist in a traditional datastore at runtime
         The first query clause is supplied as an array reference with key
         and value elements.
 
+        All values prepended with an \`!\` are deemed to be a negation of the
+        rest of the string as a value.
+
         Any subsequent clauses are three elements long with a preceding
         combine operation.  Valid operations are 'and', 'or', 'andnot'.
 
@@ -76,6 +80,10 @@ exist in a traditional datastore at runtime
     Returns an array of all known values for a given key.
 
 # CAVEATS
+
+Note that supplied keys may not begin with an \`!\`.  Thought has been
+given to making this configurable at creation, but it was deemed to
+be unnecessary complexity.
 
 This software is in an early state. The internal representation and
 external API are subject to deep breaking change.

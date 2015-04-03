@@ -123,12 +123,46 @@ subtest 'query with reduction' => sub {
     };
 };
 
+subtest 'negated queries' => sub {
+    subtest 'string' => sub {
+        eq_or_diff(
+            [$fb->query("'breathes_with' IS NOT 'lungs' -> 'lives_in'")],
+            ['forest', 'ocean', 'arctic'],
+            'Querying against a key which does not exist yields everything'
+        );
+        eq_or_diff(
+            [$fb->query("'type' IS NOT 'bear' OR 'type' is 'bear' -> 'lives_in'")],
+            ['forest', 'ocean', 'arctic'],
+            '..so does bear or not-bear'
+        );
+        eq_or_diff([$fb->query("'food' IS NOT 'seal'")], [map { $sample_data{$_} } qw(bb bw hh)], 'Which things do not eat seals?');
+    };
+    subtest 'raw' => sub {
+        eq_or_diff(
+            [$fb->query([['breathes_with' => '!lungs']], ['lives_in'])],
+            ['forest', 'ocean', 'arctic'],
+            'Querying against a key which does not exist yields everything'
+        );
+        eq_or_diff(
+            [$fb->query([['type' => '!bear'], ['or', 'type' => 'bear']], ['lives_in'])],
+            ['forest', 'ocean', 'arctic'],
+            '..so does bear or not-bear'
+        );
+        eq_or_diff([$fb->query([['food' => '!seal']])], [map { $sample_data{$_} } qw(bb bw hh)], 'Which things do not eat seals?');
+    };
+};
+
 subtest 'query equivalence' => sub {
     note 'The tests above probably prove this, but this test is kept in sync explicitly';
     eq_or_diff(
         [$fb->query([['food' => 'seal'], ['andnot', 'type' => 'shark']], ['type', 'lives_in'])],
         [$fb->query("'food' IS 'seal' AND NOT 'type' IS 'shark'-> 'type', 'lives_in'")],
         'Seal-eater query returns equivalent results whether raw or string.'
+    );
+    eq_or_diff(
+        [$fb->query([['food' => '!seal']])],
+        [$fb->query("'food' IS NOT 'seal'")],
+        'Not seal-eater query returns equivalent results whether raw or string'
     );
 };
 

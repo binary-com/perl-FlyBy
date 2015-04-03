@@ -3,7 +3,7 @@ package FlyBy;
 use strict;
 use warnings;
 use 5.010;
-our $VERSION = '0.051';
+our $VERSION = '0.060';
 
 use Moo;
 
@@ -25,6 +25,12 @@ has records => (
     default  => sub { []; },
 );
 
+has _full_set => (
+    is       => 'ro',
+    init_arg => undef,
+    default  => sub { Set::Scalar->new; },
+);
+
 has combine_operations => (
     is       => 'ro',
     init_arg => undef,
@@ -38,11 +44,14 @@ has query_lexer => (
     builder  => '_build_query_lexer',
 );
 
+my $negation = '!';
+
 sub _build_query_lexer {
     my $self = shift;
 
     my @tokens = (
         "ANDNOT"        => "(and not|AND NOT)",
+        "NOTEQUAL"      => "(is not|IS NOT)",
         "EQUAL"         => "is|IS",
         "AND"           => "and|AND",
         "OR"            => "or|OR",
@@ -68,6 +77,7 @@ sub add_records {
         my $rec_index = $#$records + 1;    # Even if we accidentally made this sparse, we can insert here.
         $records->[$rec_index] = $record;
         while (my ($k, $v) = each %$record) {
+            $self->_full_set->insert($rec_index);
             $self->_from_index($k, $v, 1)->insert($rec_index);
         }
     }
@@ -95,15 +105,16 @@ sub query {
     my ($self, $query_clauses, $reduce_list) = @_;
 
     if (not reftype($query_clauses)) {
-        my $err; # To let us notice parsing errors;
-        # Should be a single query string
+        my $err;                                             # To let us notice parsing errors;
+                                                             # Should be a single query string
         croak 'String queries should have a single parameter' if (defined $reduce_list);
         ($query_clauses, $reduce_list, $err) = $self->parse_query($query_clauses);
         croak $err if $err;
     } else {
         # Should be in our 'raw' datastructure format.
         # Trust the parser above, so we only verify on 'hand-made' queries.
-        croak 'Query clauses should be a non-empty array reference.' unless ($query_clauses and (reftype($query_clauses) // '') eq 'ARRAY' and @$query_clauses);
+        croak 'Query clauses should be a non-empty array reference.'
+            unless ($query_clauses and (reftype($query_clauses) // '') eq 'ARRAY' and @$query_clauses);
         for my $i (0 .. $#{$query_clauses}) {
             croak 'Improperly specified data structure for query clause ' . $i unless ($self->_check_and_update_clause($query_clauses->[$i], $i));
         }
@@ -111,14 +122,20 @@ sub query {
             unless (not $reduce_list or ((reftype($reduce_list) // '') eq 'ARRAY' and scalar @$reduce_list));
     }
 
-    my $start = shift @$query_clauses;    # This one is special, because it defines the initial set.
+    # Adjust the first clause to be the intersection with the full_set
+    # This will allow for negated matches up front.
+    unshift @{$query_clauses->[0]}, 'intersection';
 
-    my $index_sets = $self->index_sets;
-    my $match_set = $self->_from_index($start->[0], $start->[1], 0);
+    my $match_set = $self->_full_set;
 
     foreach my $addl_clause (@$query_clauses) {
         my ($method, $key, $value) = @$addl_clause;
-        $match_set = $match_set->$method($self->_from_index($key, $value, 0));
+        my $change_set =
+            (substr($value, 0, 1) eq $negation)
+            ? $self->_full_set->difference($self->_from_index($key, substr($value, 1)))
+            : $self->_from_index($key, $value, 0);
+
+        $match_set = $match_set->$method($change_set);
     }
 
     my $records = $self->records;
@@ -155,9 +172,9 @@ sub parse_query {
 
     try {
         croak 'Empty query' unless $query;
-        my @clause    = ();
-        my @tokens    = $lexer->analyze($query);
-        my $in_reduce = 0;
+        my @clause = ();
+        my @tokens = $lexer->analyze($query);
+        my ($in_reduce, $negated) = (0, 0);
         $values{query} = [];
         TOKEN:
         while (my $name = shift @tokens) {
@@ -175,13 +192,17 @@ sub parse_query {
             next TOKEN if ($name eq 'COMMA');    # They can put commas anywhere, we don't care.
             my $expected_length = (scalar @{$values{query}}) ? 3 : 2;
             if ($name eq 'QUOTED_STRING') {
-                push @clause, substr($text, 1, -1);
+                push @clause, ($negated) ? $negation . substr($text, 1, -1) : substr($text, 1, -1);
+                $negated = 0;
             } elsif (my $method = $self->combine_operations->{$name}) {
                 croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length);
                 push @{$values{query}}, [@clause];
                 @clause = ($method);             # Starting a new clause.
             } elsif ($name eq 'EQUAL') {
                 croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length - 1);
+            } elsif ($name eq 'NOTEQUAL') {
+                croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length - 1);
+                $negated = 1;
             } elsif ($name eq 'REDUCE') {
                 croak $parse_err->($text) if ($in_reduce);
                 $in_reduce = 1;
@@ -269,7 +290,8 @@ Supply one or more hash references to be added to the store.
 
   $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
 
-The query parameters are joined with `IS` for equality testing.
+The query parameters are joined with `IS` for equality testing, or
+`IS NOT` for its inverse.
 
 Multiple clauses are joined with an operation (one of: `AND`,
 `OR`, `AND NOT`) to indicate how to combine the results.  Please
@@ -294,6 +316,9 @@ The query clause is supplied as an array reference of array references.
 The first query clause is supplied as an array reference with key
 and value elements.
 
+All values prepended with an `!` are deemed to be a negation of the
+rest of the string as a value.
+
 Any subsequent clauses are three elements long with a preceding
 combine operation.  Valid operations are 'and', 'or', 'andnot'.
 
@@ -315,6 +340,10 @@ Returns an array of all known values for a given key.
 =back
 
 =head1 CAVEATS
+
+Note that supplied keys may not begin with an `!`.  Thought has been
+given to making this configurable at creation, but it was deemed to
+be unnecessary complexity.
 
 This software is in an early state. The internal representation and
 external API are subject to deep breaking change.
