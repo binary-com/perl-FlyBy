@@ -2,6 +2,9 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.070  2015-04-05 14:08:17 CAT
+        - Add alternative raw `OR` syntax
+
 0.060  2015-04-03 18:06:53 CAT
         - Add support for negative matching (`!` or `IS NOT`)
 
