@@ -60,6 +60,9 @@ exist in a traditional datastore at runtime
         The first query clause is supplied as an array reference with key
         and value elements.
 
+        An array reference value is treated as a sucession of 'or'-ed values
+        for the provided key.
+
         All values prepended with an \`!\` are deemed to be a negation of the
         rest of the string as a value.
 

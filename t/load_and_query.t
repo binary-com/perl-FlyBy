@@ -148,12 +148,12 @@ subtest 'negated queries' => sub {
             ['forest', 'ocean', 'arctic'],
             '..so does bear or not-bear'
         );
-        eq_or_diff([$fb->query([['food' => '!seal']])], [map { $sample_data{$_} } qw(bb bw hh)], 'Which things do not eat seals?');
+        eq_or_diff([$fb->query([['food' => '!seal']])],         [map { $sample_data{$_} } qw(bb bw hh)],    'Which things do not eat seals?');
+        eq_or_diff([$fb->query([['food' => [qw/seal meat/]]])], [map { $sample_data{$_} } qw(bb gw hh pb)], 'Which things seals or meat?');
     };
 };
 
 subtest 'query equivalence' => sub {
-    note 'The tests above probably prove this, but this test is kept in sync explicitly';
     eq_or_diff(
         [$fb->query([['food' => 'seal'], ['andnot', 'type' => 'shark']], ['type', 'lives_in'])],
         [$fb->query("'food' IS 'seal' AND NOT 'type' IS 'shark'-> 'type', 'lives_in'")],
@@ -163,6 +163,11 @@ subtest 'query equivalence' => sub {
         [$fb->query([['food' => '!seal']])],
         [$fb->query("'food' IS NOT 'seal'")],
         'Not seal-eater query returns equivalent results whether raw or string'
+    );
+    eq_or_diff(
+        [$fb->query([['food' => [qw/seal meat/]]])],
+        [$fb->query("'food' IS 'seal' OR 'food' IS 'meat'")],
+        'Seals or meat equivalent with string and alternative raw OR syntax.'
     );
 };
 

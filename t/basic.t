@@ -45,6 +45,7 @@ subtest 'raw query parameters' => sub {
         $default->query([['a' => 'b'], ['or', 'c' => 'd']], ['a'])
     }
     '...a bit like this, maybe.';
+    lives_ok { $default->query([['a' => [qw/b/]]]) } 'Alternative raw OR syntax is ok even with a single entry.';
 };
 
 done_testing;

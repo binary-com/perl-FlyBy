@@ -127,9 +127,17 @@ sub query {
     unshift @{$query_clauses->[0]}, 'intersection';
 
     my $match_set = $self->_full_set;
+    my @qc        = @$query_clauses;
 
-    foreach my $addl_clause (@$query_clauses) {
+    while (my $addl_clause = shift @qc) {
         my ($method, $key, $value) = @$addl_clause;
+        my $whatsit = reftype($value);
+        if ($whatsit && $whatsit eq 'ARRAY') {
+            # Alternative raw OR syntax.
+            my @ors = @$value;
+            $value = shift @ors;    # We can do this first one, regardless.
+            unshift @qc, (map { [$self->combine_operations->{OR}, $key, $_] } @ors);
+        }
         my $change_set =
             (substr($value, 0, 1) eq $negation)
             ? $self->_full_set->difference($self->_from_index($key, substr($value, 1)))
@@ -315,6 +323,9 @@ The query clause is supplied as an array reference of array references.
 
 The first query clause is supplied as an array reference with key
 and value elements.
+
+An array reference value is treated as a sucession of 'or'-ed values
+for the provided key.
 
 All values prepended with an `!` are deemed to be a negation of the
 rest of the string as a value.
