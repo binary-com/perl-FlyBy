@@ -69,7 +69,7 @@ subtest 'query' => sub {
         );
         eq_or_diff(
             [$fb->query("'lives_in' IS 'ocean' AND 'food' IS 'kelp' OR 'meat'")],
-            [map { $sample_data{$_} } qw(bb bw hh)],
+            [map { $sample_data{$_} } qw(bw hh)],
             'Or clauses combine on a single key'
         );
         eq_or_diff(
@@ -79,27 +79,42 @@ subtest 'query' => sub {
         );
     };
     subtest 'raw' => sub {
-        eq_or_diff([$fb->query([['breathes_with' => 'lungs']])], [], 'Querying against a key which does not exist gives an empty set.');
-        eq_or_diff([$fb->query([['called' => 'black bear']])], [$sample_data{bb}], 'Querying for a unique key gets just that entry');
-        eq_or_diff(
-            [$fb->query([['lives_in' => 'ocean']])],
-            [map { $sample_data{$_} } qw(bw gw hh)],
-            'Querying for ocean dwellers gets those 3 entries'
+        eq_or_diff([$fb->query({'breathes_with' => 'lungs'})], [], 'Querying against a key which does not exist gives an empty set.');
+        eq_or_diff([$fb->query({'called' => 'black bear'})], [$sample_data{bb}], 'Querying for a unique key gets just that entry');
+        eq_or_diff([$fb->query({'lives_in' => 'ocean'})], [map { $sample_data{$_} } qw(bw gw hh)],
+            'Querying for ocean dwellers gets those 3 entries');
+        eq_or_diff([
+                $fb->query({
+                        'lives_in' => 'ocean',
+                        'food'     => 'seal'
+                    })
+            ],
+            [$sample_data{gw}],
+            '...but adding in seal-eaters, gets it down to just the one entry'
         );
-        eq_or_diff([$fb->query([['lives_in' => 'ocean'], ['food' => 'seal']])],
-            [$sample_data{gw}], '...but adding in seal-eaters, gets it down to just the one entry');
-        eq_or_diff(
-            [$fb->query([['lives_in' => 'ocean'], ['food' => '!seal']])],
+        eq_or_diff([
+                $fb->query({
+                        'lives_in' => 'ocean',
+                        'food'     => '!seal'
+                    })
+            ],
             [map { $sample_data{$_} } qw(bw hh)],
             '...while dropping the seal-eaters leaves the other two'
         );
-        eq_or_diff(
-            [$fb->query([['lives_in' => 'ocean'], ['food' => [qw/kelp meat/]]])],
-            [map { $sample_data{$_} } qw(bb bw hh)],
+        eq_or_diff([
+                $fb->query({
+                        'lives_in' => 'ocean',
+                        'food'     => [qw/kelp meat/]})
+            ],
+            [map { $sample_data{$_} } qw(bw hh)],
             'Or clauses combine on a single key'
         );
-        eq_or_diff(
-            [$fb->query([['lives_in' => [qw/ocean arctic/]], ['food' => 'seal']])],
+        eq_or_diff([
+                $fb->query({
+                        'lives_in' => [qw/ocean arctic/],
+                        'food'     => 'seal'
+                    })
+            ],
             [map { $sample_data{$_} } qw(gw pb)],
             '...anywhere in the query'
         );
@@ -117,11 +132,11 @@ subtest 'query with reduction' => sub {
         );
     };
     subtest 'raw' => sub {
-        eq_or_diff([$fb->query([['breathes_with' => ' lungs']], [' lives_in '])],
+        eq_or_diff([$fb->query({'breathes_with' => ' lungs'}, [' lives_in '])],
             [], 'Querying against a key which does not exist gives an empty set.');
-        eq_or_diff([$fb->query([['type' => 'bear']], ['lives_in'])], ['forest', 'arctic'], 'Where do all the bears live?');
+        eq_or_diff([$fb->query({'type' => 'bear'}, ['lives_in'])], ['forest', 'arctic'], 'Where do all the bears live?');
         eq_or_diff(
-            [$fb->query([['food' => 'seal']], ['type', 'lives_in'])],
+            [$fb->query({'food' => 'seal'}, ['type', 'lives_in'])],
             [['shark', 'ocean'], ['bear', 'arctic']],
             'What types of things eat seals and where to they live?'
         );
@@ -134,36 +149,40 @@ subtest 'negated queries' => sub {
         eq_or_diff(
             [$fb->query("'breathes_with' IS NOT 'lungs' -> 'lives_in'")],
             ['forest', 'ocean', 'arctic'],
-            'Querying against a key which does not exist yields everything'
+            'Querying against a negated key which does not exist yields everything'
         );
         eq_or_diff([$fb->query("'type' IS NOT 'bear' OR 'bear' -> 'lives_in'")], ['forest', 'ocean', 'arctic'], '..so does bear or not-bear');
         eq_or_diff([$fb->query("'food' IS NOT 'seal'")], [map { $sample_data{$_} } qw(bb bw hh)], 'Which things do not eat seals?');
     };
     subtest 'raw' => sub {
         eq_or_diff(
-            [$fb->query([['breathes_with' => '!lungs']], ['lives_in'])],
+            [$fb->query({'breathes_with' => '!lungs'}, ['lives_in'])],
             ['forest', 'ocean', 'arctic'],
-            'Querying against a key which does not exist yields everything'
+            'Querying against a negated key which does not exist yields everything'
         );
-        eq_or_diff([$fb->query([['type' => [qw/bear !bear/]]], ['lives_in'])], ['forest', 'ocean', 'arctic'], '..so does bear or not-bear');
-        eq_or_diff([$fb->query([['food' => '!seal']])],         [map { $sample_data{$_} } qw(bb bw hh)],    'Which things do not eat seals?');
-        eq_or_diff([$fb->query([['food' => [qw/seal meat/]]])], [map { $sample_data{$_} } qw(bb gw hh pb)], 'Which things seals or meat?');
+        eq_or_diff([$fb->query({'type' => [qw/bear !bear/]}, ['lives_in'])], ['forest', 'ocean', 'arctic'], '..so does bear or not-bear');
+        eq_or_diff([$fb->query({'food' => '!seal'})], [map { $sample_data{$_} } qw(bb bw hh)], 'Which things do not eat seals?');
     };
 };
 
 subtest 'query equivalence' => sub {
-    eq_or_diff(
-        [$fb->query([['food' => 'seal'], ['type' => '!shark']], ['type', 'lives_in'])],
+    eq_or_diff([
+            $fb->query({
+                    'food' => 'seal',
+                    'type' => '!shark'
+                },
+                ['type', 'lives_in'])
+        ],
         [$fb->query("'food' IS 'seal' AND 'type' IS NOT 'shark'-> 'type', 'lives_in'")],
         'Seal-eater query returns equivalent results whether raw or string.'
     );
     eq_or_diff(
-        [$fb->query([['food' => '!seal']])],
+        [$fb->query({'food' => '!seal'})],
         [$fb->query("'food' IS NOT 'seal'")],
         'Not seal-eater query returns equivalent results whether raw or string'
     );
     eq_or_diff(
-        [$fb->query([['food' => [qw/seal meat/]]])],
+        [$fb->query({'food' => [qw/seal meat/]})],
         [$fb->query("'food' IS 'seal' OR 'meat'")],
         'Seals or meat equivalent with string and alternative raw OR syntax.'
     );

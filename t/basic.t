@@ -31,14 +31,13 @@ subtest 'string query syntax' => sub {
 subtest 'raw query parameters' => sub {
 
     my $default = new_ok('FlyBy');
-    throws_ok { $default->query([]) } qr/non-empty array/, 'Raw query starts with a non-empty array reference';
-    throws_ok { $default->query(['a', 'b' => 'c']) } qr/clause 0/, '...with the each clause as a bare match.';
-    lives_ok { $default->query([['a' => 'b']]) } '...perhaps like this.';
-    lives_ok { $default->query([['a' => 'b'], ['c' => 'd']]) } '...or something like this.';
-    throws_ok { $default->query([['a' => 'b'], ['c' => 'd']], 'a') } qr/non-empty array/, 'Queries with reductions shoould have an array ref';
-    throws_ok { $default->query([['a' => 'b'], ['c' => 'd']], []) } qr/non-empty array/, '...a non-empty array ref';
-    lives_ok { $default->query([['a' => 'b'], ['c' => 'd']], ['a']) } '...a bit like this, maybe.';
-    lives_ok { $default->query([['a' => [qw/b/]]]) } 'Raw OR syntax is ok even with a single entry.';
+    throws_ok { $default->query({}) } qr/non-empty hash reference/, 'Raw query starts with a non-empty array reference';
+    lives_ok { $default->query({'a' => 'b'}) } '...perhaps like this.';
+    lives_ok { $default->query({'a' => 'b', 'c' => 'd'}) } '...or something like this.';
+    throws_ok { $default->query({'a' => 'b', 'c' => 'd'}, 'a') } qr/non-empty array/, 'Queries with reductions should have an array ref';
+    throws_ok { $default->query({'a' => 'b', 'c' => 'd'}, []) } qr/non-empty array/, '...a non-empty array ref';
+    lives_ok { $default->query({'a' => 'b', 'c' => 'd'}, ['a']) } '...a bit like this, maybe.';
+    lives_ok { $default->query({'a' => [qw/b/]}) } 'Raw OR syntax is ok even with a single entry.';
 };
 
 done_testing;

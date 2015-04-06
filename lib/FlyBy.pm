@@ -82,13 +82,19 @@ sub _from_index {
     my ($self, $key, $value, $add_missing_key) = @_;
     my $index_sets = $self->index_sets;
 
-    my $result;
+    my ($result, $negated);
+
+    if (substr($value, 0, 1) eq $negation) {
+        $negated = 1;
+        $value = substr($value, 1);
+    }
 
     if (not $add_missing_key and not exists $index_sets->{$key}) {
-        $result = Set::Scalar->new;    # Avoiding auto-vi on request
+        $result = ($negated) ? $self->_full_set : Set::Scalar->new;    # Avoiding auto-viv on request
     } else {
-        $index_sets->{$key}{$value} //= Set::Scalar->new;    # Sets which do not (yet) exist in the index are null.
+        $index_sets->{$key}{$value} //= Set::Scalar->new;              # Sets which do not (yet) exist in the index are null.
         $result = $index_sets->{$key}{$value};
+        $result = $self->_full_set->difference($result) if ($negated);
     }
 
     return $result;
@@ -98,41 +104,43 @@ sub query {
     my ($self, $query_clauses, $reduce_list) = @_;
 
     if (not reftype($query_clauses)) {
-        my $err;                                             # To let us notice parsing errors;
-                                                             # Should be a single query string
+        my $err;                                                       # To let us notice parsing errors;
         croak 'String queries should have a single parameter' if (defined $reduce_list);
         ($query_clauses, $reduce_list, $err) = $self->parse_query($query_clauses);
         croak $err if $err;
     } else {
-        # Should be in our 'raw' datastructure format.
         # Trust the parser above, so we only verify on 'hand-made' queries.
-        croak 'Query clauses should be a non-empty array reference.'
-            unless ($query_clauses and (reftype($query_clauses) // '') eq 'ARRAY' and @$query_clauses);
-        for my $i (0 .. $#{$query_clauses}) {
-            croak 'Improperly specified data structure for query clause ' . $i unless ($self->_check_clause($query_clauses->[$i]));
-        }
+        croak 'Query clauses should be a non-empty hash reference.'
+            unless ($query_clauses and (reftype($query_clauses) // '') eq 'HASH' and keys %$query_clauses);
         croak 'Reduce list should be a non-empty array reference.'
             unless (not $reduce_list or ((reftype($reduce_list) // '') eq 'ARRAY' and scalar @$reduce_list));
+
+        # Now convert the supplied hashref to an array reference we can use.
+        my %qhash = %$query_clauses;
+        $query_clauses = [map { [$_ => $qhash{$_}] } keys %qhash];
     }
 
     my $match_set = $self->_full_set;
     my @qc        = @$query_clauses;
 
     while (my $addl_clause = shift @qc) {
-        my ($method, $key, $value) = (scalar @$addl_clause == 2) ? ('intersection', @$addl_clause) : @$addl_clause;
+        my ($key, $value) = @$addl_clause;
         my $whatsit = reftype($value);
+        my $change_set;
         if ($whatsit && $whatsit eq 'ARRAY') {
             # OR syntax.
             my @ors = @$value;
-            $value = shift @ors;    # We can do this first one, regardless.
-            unshift @qc, (map { ['union', $key, $_] } @ors);
+            $value = shift @ors;
+            # Allow for negation, even though it seems unlikely.
+            $change_set = $self->_from_index($key, $value, 0);
+            foreach my $or (@ors) {
+                $change_set = $change_set->union($self->_from_index($key, $or, 0));
+            }
+        } else {
+            $change_set = $self->_from_index($key, $value, 0);
         }
-        my $change_set =
-            (substr($value, 0, 1) eq $negation)
-            ? $self->_full_set->difference($self->_from_index($key, substr($value, 1)))
-            : $self->_from_index($key, $value, 0);
 
-        $match_set = $match_set->$method($change_set);
+        $match_set = $match_set->intersection($change_set);
     }
 
     my $records = $self->records;
@@ -153,7 +161,6 @@ sub query {
             }
         }
     } else {
-        # They get everything, sort simplifies testing, not sure if I care.
         @results = map { $records->[$_] } @indices;
     }
 
@@ -176,8 +183,8 @@ sub parse_query {
         TOKEN:
         while (my $name = shift @tokens) {
             my $text = shift @tokens;
-            # We must be done.
             if ($name eq 'EOI') {
+                # We must be done.
                 if (@clause and $in_reduce) {
                     $values{reduce} = [@clause];
                 } elsif (@clause) {
@@ -256,11 +263,12 @@ FlyBy - Ad hoc denormalized querying
 
   my $fb = FlyBy->new;
   $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
-  my $arrayref_of_array_refs = $fb->query([['key' => ['value', 'other value']]);
+  my @array_of_hash_refs = $fb->query({'key' => ['value', 'other value']});
 
   # Or with a 'reduction list':
-  my $array_ref = $fb->query([['key' => 'value']], ['field']);
-  my $array_ref_of_array_refs = $fb->query([['key' =>'value'], ['other key' => 'other value'], ['field', 'other field']);
+  my @array = $fb->query({'key' => 'value'}, ['some key']);
+  my @array_of_array_refs = $fb->query({'key' =>'value', 'other key' => 'other value'},
+    ['some key', 'some other key']);
 
 =head1 DESCRIPTION
 
@@ -304,20 +312,16 @@ array references (in the provided key order) is returned.
 
 =item raw
 
-  $fb->query([['type' => 'shark'],  ['food' => 'seal']], ['called', 'lives_in']");
+  $fb->query({'type' => 'shark', 'food' => 'seal'}, ['called', 'lives_in']");
 
-The query clause is supplied as an array reference of array references.
-
-Each query clause is supplied as an array reference with key
-and value elements.
+The query clause is supplied as hash reference of keys and values to
+be `AND`-ed together for the final result.
 
 An array reference value is treated as a sucession of 'or'-ed values
 for the provided key.
 
 All values prepended with an `!` are deemed to be a negation of the
 rest of the string as a value.
-
-Any subsequent clauses are `AND`-ed with the previous clauses
 
 A second optional reduction list of strings may be provided which
 reduces the result as above.

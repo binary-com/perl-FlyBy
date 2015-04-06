@@ -8,11 +8,12 @@ FlyBy - Ad hoc denormalized querying
 
     my $fb = FlyBy->new;
     $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
-    my $arrayref_of_array_refs = $fb->query([['key' => ['value', 'other value']]);
+    my @array_of_hash_refs = $fb->query({'key' => ['value', 'other value']});
 
     # Or with a 'reduction list':
-    my $array_ref = $fb->query([['key' => 'value']], ['field']);
-    my $array_ref_of_array_refs = $fb->query([['key' =>'value'], ['other key' => 'other value'], ['field', 'other field']);
+    my @array = $fb->query({'key' => 'value'}, ['some key']);
+    my @array_of_array_refs = $fb->query({'key' =>'value', 'other key' => 'other value'},
+      ['some key', 'some other key']);
 
 # DESCRIPTION
 
@@ -52,20 +53,16 @@ exist in a traditional datastore at runtime
 
     - raw
 
-            $fb->query([['type' => 'shark'],  ['food' => 'seal']], ['called', 'lives_in']");
+            $fb->query({'type' => 'shark', 'food' => 'seal'}, ['called', 'lives_in']");
 
-        The query clause is supplied as an array reference of array references.
-
-        Each query clause is supplied as an array reference with key
-        and value elements.
+        The query clause is supplied as hash reference of keys and values to
+        be \`AND\`-ed together for the final result.
 
         An array reference value is treated as a sucession of 'or'-ed values
         for the provided key.
 
         All values prepended with an \`!\` are deemed to be a negation of the
         rest of the string as a value.
-
-        Any subsequent clauses are \`AND\`-ed with the previous clauses
 
         A second optional reduction list of strings may be provided which
         reduces the result as above.
