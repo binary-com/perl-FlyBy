@@ -2,6 +2,10 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.090  2015-04-06 16:45:32 CAT
+        - Fix broken per-key OR
+        - Move to hash-reference raw queries
+
 0.081  2015-04-06 10:28:18 CAT
         - Explicitly remove `AND NOT` from the parsing.
 
