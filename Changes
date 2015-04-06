@@ -2,6 +2,13 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.080  2015-04-06 10:19:42 CAT
+        - String query grammer changes
+            - `AND` connects multiple keys per query
+            - `OR` connects multiple values per key
+            - `AND NOT` is deprecated in favor of `AND 'key' IS NOT 'value'`
+        - Raw query format simplified with implied `AND`
+
 0.070  2015-04-05 14:08:17 CAT
         - Add alternative raw `OR` syntax
 
