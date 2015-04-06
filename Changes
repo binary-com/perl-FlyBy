@@ -2,6 +2,9 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.081  2015-04-06 10:28:18 CAT
+        - Explicitly remove `AND NOT` from the parsing.
+
 0.080  2015-04-06 10:19:42 CAT
         - String query grammer changes
             - `AND` connects multiple keys per query
