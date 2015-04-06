@@ -44,7 +44,6 @@ sub _build_query_lexer {
     my $self = shift;
 
     my @tokens = (
-        "ANDNOT"        => "(and not|AND NOT)",
         "NOTEQUAL"      => "(is not|IS NOT)",
         "EQUAL"         => "is|IS",
         "AND"           => "and|AND",
