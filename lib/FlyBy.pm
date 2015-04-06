@@ -31,12 +31,6 @@ has _full_set => (
     default  => sub { Set::Scalar->new; },
 );
 
-has combine_operations => (
-    is       => 'ro',
-    init_arg => undef,
-    default  => sub { {'AND' => 'intersection', 'OR' => 'union', 'ANDNOT' => 'difference'}; },
-);
-
 has query_lexer => (
     is       => 'ro',
     init_arg => undef,
@@ -116,27 +110,23 @@ sub query {
         croak 'Query clauses should be a non-empty array reference.'
             unless ($query_clauses and (reftype($query_clauses) // '') eq 'ARRAY' and @$query_clauses);
         for my $i (0 .. $#{$query_clauses}) {
-            croak 'Improperly specified data structure for query clause ' . $i unless ($self->_check_and_update_clause($query_clauses->[$i], $i));
+            croak 'Improperly specified data structure for query clause ' . $i unless ($self->_check_clause($query_clauses->[$i]));
         }
         croak 'Reduce list should be a non-empty array reference.'
             unless (not $reduce_list or ((reftype($reduce_list) // '') eq 'ARRAY' and scalar @$reduce_list));
     }
 
-    # Adjust the first clause to be the intersection with the full_set
-    # This will allow for negated matches up front.
-    unshift @{$query_clauses->[0]}, 'intersection';
-
     my $match_set = $self->_full_set;
     my @qc        = @$query_clauses;
 
     while (my $addl_clause = shift @qc) {
-        my ($method, $key, $value) = @$addl_clause;
+        my ($method, $key, $value) = (scalar @$addl_clause == 2) ? ('intersection', @$addl_clause) : @$addl_clause;
         my $whatsit = reftype($value);
         if ($whatsit && $whatsit eq 'ARRAY') {
-            # Alternative raw OR syntax.
+            # OR syntax.
             my @ors = @$value;
             $value = shift @ors;    # We can do this first one, regardless.
-            unshift @qc, (map { [$self->combine_operations->{OR}, $key, $_] } @ors);
+            unshift @qc, (map { ['union', $key, $_] } @ors);
         }
         my $change_set =
             (substr($value, 0, 1) eq $negation)
@@ -182,7 +172,7 @@ sub parse_query {
         croak 'Empty query' unless $query;
         my @clause = ();
         my @tokens = $lexer->analyze($query);
-        my ($in_reduce, $negated) = (0, 0);
+        my ($in_reduce, $negated, $in_or) = (0, 0);
         $values{query} = [];
         TOKEN:
         while (my $name = shift @tokens) {
@@ -198,14 +188,23 @@ sub parse_query {
                 last TOKEN;
             }
             next TOKEN if ($name eq 'COMMA');    # They can put commas anywhere, we don't care.
-            my $expected_length = (scalar @{$values{query}}) ? 3 : 2;
+            my $expected_length = 2;
             if ($name eq 'QUOTED_STRING') {
-                push @clause, ($negated) ? $negation . substr($text, 1, -1) : substr($text, 1, -1);
-                $negated = 0;
-            } elsif (my $method = $self->combine_operations->{$name}) {
+                my $value = ($negated) ? $negation . substr($text, 1, -1) : substr($text, 1, -1);
+                if ($in_or) {
+                    $clause[-1] = [$clause[-1]] unless (reftype($clause[-1]));
+                    push @{$clause[-1]}, $value;
+                } else {
+                    push @clause, $value;
+                }
+                ($in_or, $negated) = 0;
+            } elsif ($name eq 'AND') {
                 croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length);
                 push @{$values{query}}, [@clause];
-                @clause = ($method);             # Starting a new clause.
+                @clause = ();    # Starting a new clause.
+            } elsif ($name eq 'OR') {
+                croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length);
+                $in_or = 1;
             } elsif ($name eq 'EQUAL') {
                 croak $parse_err->($text) if ($in_reduce or scalar @clause != $expected_length - 1);
             } elsif ($name eq 'NOTEQUAL') {
@@ -226,21 +225,11 @@ sub parse_query {
     return $values{query}, $values{reduce}, $err;
 }
 
-sub _check_and_update_clause {
-    my ($self, $thing, $pos) = @_;
+sub _check_clause {
+    my ($self, $thing) = @_;
 
-    my $valid;
     my $whatsit = reftype $thing;
-    if ($whatsit and $whatsit eq 'ARRAY') {
-        if ($pos == 0) {
-            $valid = (scalar @$thing == 2);
-        } elsif (scalar @$thing == 3) {
-            $thing->[0] = $self->combine_operations->{uc $thing->[0]};    # First entry should be the operation.
-            $valid = $thing->[0];
-        }
-    }
-
-    return $valid;
+    return ($whatsit and $whatsit eq 'ARRAY' and scalar @$thing == 2);
 }
 
 sub all_keys {
@@ -268,11 +257,11 @@ FlyBy - Ad hoc denormalized querying
 
   my $fb = FlyBy->new;
   $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
-  my $arrayref_of_hashrefs = $fb->query([['key','value'], ['or', 'key', 'other value']]);
+  my $arrayref_of_array_refs = $fb->query([['key' => ['value', 'other value']]);
 
   # Or with a 'reduction list':
-  my $array_ref = $fb->query([['key','value']], ['field']);
-  my $array_ref_of_array_refs = $fb->query([['key','value']], ['field', 'other field']);
+  my $array_ref = $fb->query([['key' => 'value']], ['field']);
+  my $array_ref_of_array_refs = $fb->query([['key' =>'value'], ['other key' => 'other value'], ['field', 'other field']);
 
 =head1 DESCRIPTION
 
@@ -301,10 +290,9 @@ Supply one or more hash references to be added to the store.
 The query parameters are joined with `IS` for equality testing, or
 `IS NOT` for its inverse.
 
-Multiple clauses are joined with an operation (one of: `AND`,
-`OR`, `AND NOT`) to indicate how to combine the results.  Please
-note that they are evaluated in the supplied order which is
-significant to the results.
+Multiple values for a given key can be combined with `OR`.
+
+Multiple keys are joined with AND.
 
 The optional reductions are prefaced with `->`.
 
@@ -317,11 +305,11 @@ array references (in the provided key order) is returned.
 
 =item raw
 
-  $fb->query([['type' => 'shark'],  ['and', 'food' => 'seal']], ['called', 'lives_in']");
+  $fb->query([['type' => 'shark'],  ['food' => 'seal']], ['called', 'lives_in']");
 
 The query clause is supplied as an array reference of array references.
 
-The first query clause is supplied as an array reference with key
+Each query clause is supplied as an array reference with key
 and value elements.
 
 An array reference value is treated as a sucession of 'or'-ed values
@@ -330,8 +318,7 @@ for the provided key.
 All values prepended with an `!` are deemed to be a negation of the
 rest of the string as a value.
 
-Any subsequent clauses are three elements long with a preceding
-combine operation.  Valid operations are 'and', 'or', 'andnot'.
+Any subsequent clauses are `AND`-ed with the previous clauses
 
 A second optional reduction list of strings may be provided which
 reduces the result as above.

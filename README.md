@@ -8,11 +8,11 @@ FlyBy - Ad hoc denormalized querying
 
     my $fb = FlyBy->new;
     $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
-    my $arrayref_of_hashrefs = $fb->query([['key','value'], ['or', 'key', 'other value']]);
+    my $arrayref_of_array_refs = $fb->query([['key' => ['value', 'other value']]);
 
     # Or with a 'reduction list':
-    my $array_ref = $fb->query([['key','value']], ['field']);
-    my $array_ref_of_array_refs = $fb->query([['key','value']], ['field', 'other field']);
+    my $array_ref = $fb->query([['key' => 'value']], ['field']);
+    my $array_ref_of_array_refs = $fb->query([['key' =>'value'], ['other key' => 'other value'], ['field', 'other field']);
 
 # DESCRIPTION
 
@@ -37,10 +37,9 @@ exist in a traditional datastore at runtime
         The query parameters are joined with \`IS\` for equality testing, or
         \`IS NOT\` for its inverse.
 
-        Multiple clauses are joined with an operation (one of: \`AND\`,
-        \`OR\`, \`AND NOT\`) to indicate how to combine the results.  Please
-        note that they are evaluated in the supplied order which is
-        significant to the results.
+        Multiple values for a given key can be combined with \`OR\`.
+
+        Multiple keys are joined with AND.
 
         The optional reductions are prefaced with \`->\`.
 
@@ -53,11 +52,11 @@ exist in a traditional datastore at runtime
 
     - raw
 
-            $fb->query([['type' => 'shark'],  ['and', 'food' => 'seal']], ['called', 'lives_in']");
+            $fb->query([['type' => 'shark'],  ['food' => 'seal']], ['called', 'lives_in']");
 
         The query clause is supplied as an array reference of array references.
 
-        The first query clause is supplied as an array reference with key
+        Each query clause is supplied as an array reference with key
         and value elements.
 
         An array reference value is treated as a sucession of 'or'-ed values
@@ -66,8 +65,7 @@ exist in a traditional datastore at runtime
         All values prepended with an \`!\` are deemed to be a negation of the
         rest of the string as a value.
 
-        Any subsequent clauses are three elements long with a preceding
-        combine operation.  Valid operations are 'and', 'or', 'andnot'.
+        Any subsequent clauses are \`AND\`-ed with the previous clauses
 
         A second optional reduction list of strings may be provided which
         reduces the result as above.
