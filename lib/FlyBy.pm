@@ -90,9 +90,9 @@ sub _from_index {
     }
 
     if (not $add_missing_key and not exists $index_sets->{$key}) {
-        $result = ($negated) ? $self->_full_set : Set::Scalar->new;    # Avoiding auto-viv on request
+        $result = ($negated) ? $self->_full_set : $self->_full_set->empty_clone;    # Avoiding auto-viv on request
     } else {
-        $index_sets->{$key}{$value} //= Set::Scalar->new;              # Sets which do not (yet) exist in the index are null.
+        $index_sets->{$key}{$value} //= $self->_full_set->empty_clone;              # Sets which do not (yet) exist in the index are null.
         $result = $index_sets->{$key}{$value};
         $result = $self->_full_set->difference($result) if ($negated);
     }
@@ -104,7 +104,7 @@ sub query {
     my ($self, $query_clauses, $reduce_list) = @_;
 
     if (not reftype($query_clauses)) {
-        my $err;                                                       # To let us notice parsing errors;
+        my $err;                                                                    # To let us notice parsing errors;
         croak 'String queries should have a single parameter' if (defined $reduce_list);
         ($query_clauses, $reduce_list, $err) = $self->parse_query($query_clauses);
         croak $err if $err;
