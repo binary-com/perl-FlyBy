@@ -2,6 +2,9 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.091  2015-04-15 13:55:56 CAT
+        - Use empty_clone to keep sets in same universe
+
 0.090  2015-04-06 16:45:32 CAT
         - Fix broken per-key OR
         - Move to hash-reference raw queries
