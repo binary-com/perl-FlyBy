@@ -1,4 +1,6 @@
 use strict;
+use warnings;
+
 use Test::Most;
 use Test::FailWarnings;
 use FlyBy;
@@ -33,7 +35,7 @@ my %sample_data = (
         type     => 'whale',
         called   => 'blue whale',
         food     => 'kelp',
-        lives_in => 'ocean'
+        lives_in => 'ocean',
     },
 );
 
@@ -41,11 +43,11 @@ my $fb = new_ok('FlyBy');
 
 subtest 'load' => sub {
     eq_or_diff($fb->records, [], 'records starts empty');
-    eq_or_diff($fb->index_sets, {}, '...and so does the index');
+    eq_or_diff($fb->index_sets, {}, '... and so does the index');
     my @to_load = map { $sample_data{$_} } sort { $a cmp $b } keys %sample_data;
     ok $fb->add_records(@to_load), 'Then we load in the sample data';
-    eq_or_diff([@{$fb->records}], [@to_load], '...our records now look just like our sample data');
-    cmp_ok(scalar keys %{$fb->index_sets}, '>', 1, '...at least a couple entries in the index');
+    eq_or_diff([@{$fb->records}], [@to_load], '... our records now look just like our sample data');
+    cmp_ok(scalar keys %{$fb->index_sets}, '>', 1, '... at least a couple entries in the index');
 };
 
 subtest ' keys and values ' => sub {
@@ -61,11 +63,11 @@ subtest 'query' => sub {
         eq_or_diff([$fb->query("'lives_in' is 'ocean'")], [map { $sample_data{$_} } qw(bw gw hh)],
             'Querying for ocean dwellers gets those 3 entries');
         eq_or_diff([$fb->query("'lives_in' is 'ocean' AND 'food' is 'seal'")],
-            [$sample_data{gw}], '...but adding in seal-eaters, gets it down to just the one entry');
+            [$sample_data{gw}], '... but adding in seal-eaters, gets it down to just the one entry');
         eq_or_diff(
             [$fb->query("'lives_in' is 'ocean' AND 'food' is '!seal'")],
             [map { $sample_data{$_} } qw(bw hh)],
-            '...while dropping the seal-eaters leaves the other two'
+            '... while dropping the seal-eaters leaves the other two'
         );
         eq_or_diff(
             [$fb->query("'lives_in' IS 'ocean' AND 'food' IS 'kelp' OR 'meat'")],
@@ -75,7 +77,7 @@ subtest 'query' => sub {
         eq_or_diff(
             [$fb->query("'lives_in' IS 'ocean' OR 'arctic' AND 'food' IS 'seal'")],
             [map { $sample_data{$_} } qw(gw pb)],
-            '...anywhere in the query'
+            '... anywhere in the query'
         );
     };
     subtest 'raw' => sub {
@@ -90,7 +92,7 @@ subtest 'query' => sub {
                     })
             ],
             [$sample_data{gw}],
-            '...but adding in seal-eaters, gets it down to just the one entry'
+            '... but adding in seal-eaters, gets it down to just the one entry'
         );
         eq_or_diff([
                 $fb->query({
@@ -99,7 +101,7 @@ subtest 'query' => sub {
                     })
             ],
             [map { $sample_data{$_} } qw(bw hh)],
-            '...while dropping the seal-eaters leaves the other two'
+            '... while dropping the seal-eaters leaves the other two'
         );
         eq_or_diff([
                 $fb->query({
@@ -116,7 +118,7 @@ subtest 'query' => sub {
                     })
             ],
             [map { $sample_data{$_} } qw(gw pb)],
-            '...anywhere in the query'
+            '... anywhere in the query'
         );
     };
 };
@@ -151,7 +153,7 @@ subtest 'negated queries' => sub {
             ['forest', 'ocean', 'arctic'],
             'Querying against a negated key which does not exist yields everything'
         );
-        eq_or_diff([$fb->query("'type' IS NOT 'bear' OR 'bear' -> 'lives_in'")], ['forest', 'ocean', 'arctic'], '..so does bear or not-bear');
+        eq_or_diff([$fb->query("'type' IS NOT 'bear' OR 'bear' -> 'lives_in'")], ['forest', 'ocean', 'arctic'], '... so does bear or not-bear');
         eq_or_diff([$fb->query("'food' IS NOT 'seal'")], [map { $sample_data{$_} } qw(bb bw hh)], 'Which things do not eat seals?');
     };
     subtest 'raw' => sub {
@@ -160,7 +162,7 @@ subtest 'negated queries' => sub {
             ['forest', 'ocean', 'arctic'],
             'Querying against a negated key which does not exist yields everything'
         );
-        eq_or_diff([$fb->query({'type' => [qw/bear !bear/]}, ['lives_in'])], ['forest', 'ocean', 'arctic'], '..so does bear or not-bear');
+        eq_or_diff([$fb->query({'type' => [qw/bear !bear/]}, ['lives_in'])], ['forest', 'ocean', 'arctic'], '... so does bear or not-bear');
         eq_or_diff([$fb->query({'food' => '!seal'})], [map { $sample_data{$_} } qw(bb bw hh)], 'Which things do not eat seals?');
     };
 };
@@ -186,6 +188,29 @@ subtest 'query equivalence' => sub {
         [$fb->query("'food' IS 'seal' OR 'meat'")],
         'Seals or meat equivalent with string and alternative raw OR syntax.'
     );
+};
+
+subtest 'load undef' => sub {
+    my $post_count = scalar @{$fb->records} + 1;
+    ok $fb->add_records({
+            type     => undef,
+            called   => 'ET',
+            lives_in => 'space'
+        }
+        ),
+        'Can load a record with mixed defined and undefined values';
+    is scalar @{$fb->records}, $post_count, '... which get added to the list';
+    eq_or_diff(
+        [$fb->query({called => 'ET'})],
+        [{
+                called   => 'ET',
+                lives_in => 'space'
+            }
+        ],
+        '... and the undefined values are silently dropped from the records.'
+    );
+    lives_ok { $fb->add_records({type => undef, called => undef}) } 'Adding a record with all undefined values does not die';
+    is scalar @{$fb->records}, $post_count, '... but it also does not add the record.';
 };
 
 done_testing;

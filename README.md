@@ -27,6 +27,10 @@ exist in a traditional datastore at runtime
         $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
 
     Supply one or more hash references to be added to the store.
+
+    Keys with undefined values will be silently stripped from each record.  If the
+    record is then empty it will be discarded.
+
     \`croak\` on error; returns \`1\` on success
 
 - query

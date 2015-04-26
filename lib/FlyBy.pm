@@ -68,10 +68,18 @@ sub add_records {
         croak 'Records must be hash references, got: ' . $whatsit unless ($whatsit eq 'HASH');
 
         my $rec_index = $#$records + 1;    # Even if we accidentally made this sparse, we can insert here.
-        $records->[$rec_index] = $record;
+        my $add_it    = 0;                 # Do not add until we know there is at least one defined value;
         while (my ($k, $v) = each %$record) {
+            if (defined $v) {
+                $self->_from_index($k, $v, 1)->insert($rec_index);
+                $add_it ||= 1;
+            } else {
+                delete $record->{$k};      # A missing key denotes an undefined value.
+            }
+        }
+        if ($add_it) {
+            $records->[$rec_index] = $record;
             $self->_full_set->insert($rec_index);
-            $self->_from_index($k, $v, 1)->insert($rec_index);
         }
     }
 
@@ -284,6 +292,10 @@ exist in a traditional datastore at runtime
   $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
 
 Supply one or more hash references to be added to the store.
+
+Keys with undefined values will be silently stripped from each record.  If the
+record is then empty it will be discarded.
+
 `croak` on error; returns `1` on success
 
 =item query
