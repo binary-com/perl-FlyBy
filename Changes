@@ -2,6 +2,9 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.092  2015-04-26 15:59:56 CAT
+        - Silently strip undefined values from records
+
 0.091  2015-04-15 13:55:56 CAT
         - Use empty_clone to keep sets in same universe
 
