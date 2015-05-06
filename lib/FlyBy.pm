@@ -3,7 +3,7 @@ package FlyBy;
 use strict;
 use warnings;
 use 5.010;
-our $VERSION = '0.092';
+our $VERSION = '0.093';
 
 use Moo;
 

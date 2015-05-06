@@ -2,6 +2,10 @@ Revision history for FlyBy
 
 {{$NEXT}}
 
+0.093  2015-05-06 06:43:31 CAT
+        - Copy records on non-reduced queries
+        - Silently strip undefined values from queries
+
 0.092  2015-04-26 15:59:56 CAT
         - Silently strip undefined values from records
 
