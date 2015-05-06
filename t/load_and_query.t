@@ -213,4 +213,14 @@ subtest 'load undef' => sub {
     is scalar @{$fb->records}, $post_count, '... but it also does not add the record.';
 };
 
+subtest 'mutate results' => sub {
+    my @ets = $fb->query({called => 'ET'});
+    is(scalar @ets,         1,       'Got one ET');
+    is($ets[0]->{lives_in}, 'space', '... which lives in space');
+    $ets[0]->{lives_in} = "Elliot's house";
+    is($ets[0]->{lives_in}, "Elliot's house", "... and moves to Elliot's house");
+    my @requery_ets = $fb->query({called => 'ET'});
+    is($requery_ets[0]->{lives_in}, 'space', '... but still lives in space on requery');
+};
+
 done_testing;

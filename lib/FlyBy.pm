@@ -169,7 +169,9 @@ sub query {
             }
         }
     } else {
-        @results = map { $records->[$_] } @indices;
+        @results = map {
+            { %{$records->[$_]} }
+        } @indices;
     }
 
     return @results;
