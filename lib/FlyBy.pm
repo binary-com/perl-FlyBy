@@ -125,7 +125,7 @@ sub query {
 
         # Now convert the supplied hashref to an array reference we can use.
         my %qhash = %$query_clauses;
-        $query_clauses = [map { [$_ => $qhash{$_}] } keys %qhash];
+        $query_clauses = [map { [$_ => $qhash{$_}] } grep { defined $qhash{$_} } keys %qhash];
     }
 
     my $match_set = $self->_full_set;

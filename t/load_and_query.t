@@ -213,6 +213,12 @@ subtest 'load undef' => sub {
     is scalar @{$fb->records}, $post_count, '... but it also does not add the record.';
 };
 
+subtest 'undefined query values' => sub {
+    my @broken;
+    lives_ok { @broken = $fb->query({called => undef}) } 'Undefined query values are silently stripped';
+    is(scalar @broken, 6, '... which means having only an undef value yields everything');
+};
+
 subtest 'mutate results' => sub {
     my @ets = $fb->query({called => 'ET'});
     is(scalar @ets,         1,       'Got one ET');
