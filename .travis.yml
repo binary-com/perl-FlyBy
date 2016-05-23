@@ -15,4 +15,4 @@ before_install:
     - build-perl
     - perl -V
 script:
-    perl Makefile.PL && make test && cover -test -report coveralls
+    perl Build.PL && ./Build test
