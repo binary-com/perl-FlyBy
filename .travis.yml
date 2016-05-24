@@ -14,5 +14,6 @@ before_install:
     - source ~/travis-perl-helpers/init
     - build-perl
     - perl -V
+    - cpanm --installdeps --notest .
 script:
-    perl Build.PL && ./Build test
+    perl Build.PL && ./Build build && ./Build test
