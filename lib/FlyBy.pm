@@ -259,10 +259,7 @@ sub all_keys {
 sub values_for_key {
     my ($self, $key) = @_;
 
-    my $set = $self->index_sets->{$key};
-    my @values = grep { my $v = $set->{$_}; $v && %{$v->{elements}} } keys %$set;
-
-    return (sort { $a cmp $b } @values);
+    return (sort { $a cmp $b } keys %{$self->index_sets->{$key}});
 }
 
 1;
