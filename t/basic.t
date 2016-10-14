@@ -40,4 +40,14 @@ subtest 'raw query parameters' => sub {
     lives_ok { $default->query({'a' => [qw/b/]}) } 'Raw OR syntax is ok even with a single entry.';
 };
 
+subtest 'values for key' => sub {
+    my $default = new_ok('FlyBy');
+    ok $default->add_records({keyone => 'first', keytwo => 'second'}), 'added one record';
+    ok $default->add_records({keyone => 'firsta', keytwo => 'seconda'}), 'added second record';
+    my @ori = $default->values_for_key('keyone');
+    ok !$default->query({keyone => 'unknown'}), 'unknown query performed';
+    my @new = $default->values_for_key('keyone');
+    is_deeply(\@new, \@ori, 'checks record');
+};
+
 done_testing;
