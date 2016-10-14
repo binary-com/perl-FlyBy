@@ -97,13 +97,16 @@ sub _from_index {
         $value = substr($value, 1);
     }
 
-    if (not $add_missing_key and not exists $index_sets->{$key}) {
-        $result = ($negated) ? $self->_full_set : $self->_full_set->empty_clone;    # Avoiding auto-viv on request
+    return $negated ? $self->_full_set : $self->_full_set->empty_clone
+        unless $add_missing_key or exists $index_sets->{$key};                      # Avoiding auto-viv on request
+
+    if ($add_missing_key) {
+        $result = $index_sets->{$key}{$value} //= $self->_full_set->empty_clone;    # Sets which do not (yet) exist in the index are null.
     } else {
-        $index_sets->{$key}{$value} //= $self->_full_set->empty_clone;              # Sets which do not (yet) exist in the index are null.
-        $result = $index_sets->{$key}{$value};
-        $result = $self->_full_set->difference($result) if ($negated);
+        $result = $index_sets->{$key}{$value} //  $self->_full_set->empty_clone;    # Sets which do not (yet) exist in the index are null.
     }
+
+    $result = $self->_full_set->difference($result) if ($negated);
 
     return $result;
 }
