@@ -18,5 +18,6 @@ before_install:
     - perl -V
     - cpanm -n --installdeps .
 script:
-    perl Build.PL && ./Build build && ./Build test
+    - perl Build.PL && ./Build build && PERL5OPT=-MDevel::Cover ./Build test
+    - cover -report coveralls
 
