@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/binary-com/perl-FlyBy.svg?branch=master)](https://travis-ci.org/binary-com/perl-FlyBy)
 [![Coverage Status](https://coveralls.io/repos/github/binary-com/perl-FlyBy/badge.svg?branch=master)](https://coveralls.io/github/binary-com/perl-FlyBy?branch=master)
 [![codecov](https://codecov.io/gh/binary-com/perl-FlyBy/branch/master/graph/badge.svg)](https://codecov.io/gh/binary-com/perl-FlyBy)
 
