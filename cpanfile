@@ -9,4 +9,5 @@ on test => sub {
     requires 'Test::FailWarnings',              '0.008';
     requires 'Devel::Cover',                    '1.23';
     requires 'Devel::Cover::Report::Coveralls', '0.11';
+    requires 'Devel::Cover::Report::Codecov',   '0.14';
 };
