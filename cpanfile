@@ -5,6 +5,8 @@ requires 'Set::Scalar', '1.29';
 requires 'Try::Tiny',   '0.19';
 
 on test => sub {
-    requires 'Test::Most',         '0.34';
-    requires 'Test::FailWarnings', '0.008';
+    requires 'Test::Most',                     '0.34';
+    requires 'Test::FailWarnings',             '0.008';
+    requires 'Devel::Cover',                   '1.23';
+    requires 'Devel::Cover::Report::Coveralls, '0.11';
 };
