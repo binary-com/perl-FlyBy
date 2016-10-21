@@ -1,3 +1,4 @@
+[![Coverage Status](https://coveralls.io/repos/github/binary-com/perl-FlyBy/badge.svg?branch=master)](https://coveralls.io/github/binary-com/perl-FlyBy?branch=master)
 # NAME
 
 FlyBy - Ad hoc denormalized querying
