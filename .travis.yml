@@ -11,6 +11,7 @@ perl:
     - "5.16"
     - "5.14"
     - "5.12"
+env: CODECOV_TOKEN=5450f785-f203-4f4c-882f-e61467f85653
 before_install:
     - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
     - source ~/travis-perl-helpers/init
@@ -18,5 +19,7 @@ before_install:
     - perl -V
     - cpanm -n --installdeps .
 script:
-    perl Build.PL && ./Build build && ./Build test
-
+    - perl Build.PL && ./Build build && PERL5OPT=-MDevel::Cover ./Build test
+after_success:
+  - cover -report codecov
+  - cover -report coveralls
