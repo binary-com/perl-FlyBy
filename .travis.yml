@@ -22,4 +22,4 @@ script:
     - perl Build.PL && ./Build build && PERL5OPT=-MDevel::Cover ./Build test
 after_success:
   - cover -report codecov
-  - TRAVIS=false cover -report coveralls
+  - TRAVIS= cover -report coveralls
