@@ -17,10 +17,11 @@ my %WriteMakefileArgs = (
   "MIN_PERL_VERSION" => "5.010000",
   "NAME" => "FlyBy",
   "PREREQ_PM" => {
-    "Moo" => "1.006001",
+    "Moo" => "2.000",
     "Parse::Lex" => "2.21",
     "Set::Scalar" => "1.29",
-    "Try::Tiny" => "0.19"
+    "Try::Tiny" => "0.19",
+    "indirect" => "0.37"
   },
   "TEST_REQUIRES" => {
     "Devel::Cover" => "1.23",
@@ -31,7 +32,7 @@ my %WriteMakefileArgs = (
     "IPC::Open3" => 0,
     "Test::CheckDeps" => "0.010",
     "Test::FailWarnings" => "0.008",
-    "Test::More" => "0.94",
+    "Test::More" => "0.98",
     "Test::Most" => "0.34"
   },
   "VERSION" => "0.095",
@@ -48,14 +49,15 @@ my %FallbackPrereqs = (
   "File::Spec" => 0,
   "IO::Handle" => 0,
   "IPC::Open3" => 0,
-  "Moo" => "1.006001",
+  "Moo" => "2.000",
   "Parse::Lex" => "2.21",
   "Set::Scalar" => "1.29",
   "Test::CheckDeps" => "0.010",
   "Test::FailWarnings" => "0.008",
-  "Test::More" => "0.94",
+  "Test::More" => "0.98",
   "Test::Most" => "0.34",
-  "Try::Tiny" => "0.19"
+  "Try::Tiny" => "0.19",
+  "indirect" => "0.37"
 );
 
 
