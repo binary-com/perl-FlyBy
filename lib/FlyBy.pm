@@ -5,6 +5,32 @@ use warnings;
 
 our $VERSION = '0.095';
 
+=encoding utf-8
+
+=head1 NAME
+
+FlyBy - Ad hoc denormalized querying
+
+=head1 SYNOPSIS
+
+  use FlyBy;
+
+  my $fb = FlyBy->new;
+  $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
+  my @array_of_hash_refs = $fb->query({'key' => ['value', 'other value']});
+
+  # Or with a 'reduction list':
+  my @array = $fb->query({'key' => 'value'}, ['some key']);
+  my @array_of_array_refs = $fb->query({'key' =>'value', 'other key' => 'other value'},
+    ['some key', 'some other key']);
+
+=head1 DESCRIPTION
+
+FlyBy is a system to allow for ad hoc querying of data which may not
+exist in a traditional datastore at runtime
+
+=cut
+
 use Moo;
 
 use Carp qw(croak);
@@ -12,6 +38,10 @@ use Parse::Lex;
 use Scalar::Util qw(reftype);
 use Set::Scalar;
 use Try::Tiny;
+
+=head1 METHODS - Attributes
+
+=cut
 
 has index_sets => (
     is       => 'ro',
@@ -57,6 +87,62 @@ sub _build_query_lexer {
     return Parse::Lex->new(@tokens);
 }
 
+=head1 METHODS
+
+=head2 add_records
+
+  $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
+
+Supply one or more hash references to be added to the store.
+
+Keys with undefined values will be silently stripped from each record.  If the
+record is then empty it will be discarded.
+
+`croak` on error; returns `1` on success
+
+=head2 query
+
+=over
+
+=item string
+
+  $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
+
+The query parameters are joined with `IS` for equality testing, or
+`IS NOT` for its inverse.
+
+Multiple values for a given key can be combined with `OR`.
+
+Multiple keys are joined with AND.
+
+The optional reductions are prefaced with `->`.
+
+If no reduction is provided a list of the full record hash
+references is returned.
+If a reduction list of length 1 is provided, a list of the distinct
+values for the matching key is returned.
+If a longer reduction list is provided, a list of distinct value
+array references (in the provided key order) is returned.
+
+=item raw
+
+  $fb->query({'type' => 'shark', 'food' => 'seal'}, ['called', 'lives_in']");
+
+The query clause is supplied as hash reference of keys and values to
+be `AND`-ed together for the final result.
+
+An array reference value is treated as a sucession of 'or'-ed values
+for the provided key.
+
+All values prepended with an `!` are deemed to be a negation of the
+rest of the string as a value.
+
+A second optional reduction list of strings may be provided which
+reduces the result as above.
+
+=back
+
+Will `croak` on improperly supplied query formats.
 sub add_records {
     my ($self, @new_records) = @_;
 
@@ -251,10 +337,22 @@ sub _check_clause {
     return ($whatsit and $whatsit eq 'ARRAY' and scalar @$thing == 2);
 }
 
+=head2 all_keys
+
+Returns an arrayref with all known keys against which one might query.
+
+=cut
+
 sub all_keys {
     my $self = shift;
     return (sort { $a cmp $b } keys %{$self->index_sets});
 }
+
+=head2 values_for_key
+
+Returns an arrayref of all known values for a given key.
+
+=cut
 
 sub values_for_key {
     my ($self, $key) = @_;
@@ -263,100 +361,8 @@ sub values_for_key {
 }
 
 1;
+
 __END__
-
-=encoding utf-8
-
-=head1 NAME
-
-FlyBy - Ad hoc denormalized querying
-
-=head1 SYNOPSIS
-
-  use FlyBy;
-
-  my $fb = FlyBy->new;
-  $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
-  my @array_of_hash_refs = $fb->query({'key' => ['value', 'other value']});
-
-  # Or with a 'reduction list':
-  my @array = $fb->query({'key' => 'value'}, ['some key']);
-  my @array_of_array_refs = $fb->query({'key' =>'value', 'other key' => 'other value'},
-    ['some key', 'some other key']);
-
-=head1 DESCRIPTION
-
-FlyBy is a system to allow for ad hoc querying of data which may not
-exist in a traditional datastore at runtime
-
-=head1 USAGE
-
-=over
-
-=item add_records
-
-  $fb->add_records({array => 'of'}, {hash => 'references'}, {with => 'fields'});
-
-Supply one or more hash references to be added to the store.
-
-Keys with undefined values will be silently stripped from each record.  If the
-record is then empty it will be discarded.
-
-`croak` on error; returns `1` on success
-
-=item query
-
-=over
-
-=item string
-
-  $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
-
-The query parameters are joined with `IS` for equality testing, or
-`IS NOT` for its inverse.
-
-Multiple values for a given key can be combined with `OR`.
-
-Multiple keys are joined with AND.
-
-The optional reductions are prefaced with `->`.
-
-If no reduction is provided a list of the full record hash
-references is returned.
-If a reduction list of length 1 is provided, a list of the distinct
-values for the matching key is returned.
-If a longer reduction list is provided, a list of distinct value
-array references (in the provided key order) is returned.
-
-=item raw
-
-  $fb->query({'type' => 'shark', 'food' => 'seal'}, ['called', 'lives_in']");
-
-The query clause is supplied as hash reference of keys and values to
-be `AND`-ed together for the final result.
-
-An array reference value is treated as a sucession of 'or'-ed values
-for the provided key.
-
-All values prepended with an `!` are deemed to be a negation of the
-rest of the string as a value.
-
-A second optional reduction list of strings may be provided which
-reduces the result as above.
-
-=back
-
-Will `croak` on improperly supplied query formats.
-
-=item all_keys
-
-Returns an array with all known keys against which one might query.
-
-=item values_for_key
-
-Returns an array of all known values for a given key.
-
-=back
 
 =head1 CAVEATS
 
