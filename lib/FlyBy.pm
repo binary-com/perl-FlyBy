@@ -69,7 +69,8 @@ sub add_records {
 
         my $rec_index = $#$records + 1;    # Even if we accidentally made this sparse, we can insert here.
         my $add_it    = 0;                 # Do not add until we know there is at least one defined value;
-        while (my ($k, $v) = each %$record) {
+        for my $k (keys %$record) {
+            my $v = $record->{$k};
             if (defined $v) {
                 $self->_from_index($k, $v, 1)->insert($rec_index);
                 $add_it ||= 1;

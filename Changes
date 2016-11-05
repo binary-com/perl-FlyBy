@@ -1,6 +1,8 @@
 Revision history for FlyBy
 
 {{$NEXT}}
+        - No functional/API changes.
+        - dist.ini and code cleanup to remove each()
 
 0.094  2016-10-12 06:43:31 CAT
         - Fixed auto-vivification bug on ->query
