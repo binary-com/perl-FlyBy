@@ -60,7 +60,6 @@ sub _build_query_lexer {
 sub add_records {
     my ($self, @new_records) = @_;
 
-    my $index_sets = $self->index_sets;
     my $records    = $self->records;
 
     foreach my $record (@new_records) {
