@@ -102,49 +102,8 @@ record is then empty it will be discarded.
 
 `croak` on error; returns `1` on success
 
-=head2 query
+=cut
 
-=over
-
-=item string
-
-  $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
-
-The query parameters are joined with `IS` for equality testing, or
-`IS NOT` for its inverse.
-
-Multiple values for a given key can be combined with `OR`.
-
-Multiple keys are joined with AND.
-
-The optional reductions are prefaced with `->`.
-
-If no reduction is provided a list of the full record hash
-references is returned.
-If a reduction list of length 1 is provided, a list of the distinct
-values for the matching key is returned.
-If a longer reduction list is provided, a list of distinct value
-array references (in the provided key order) is returned.
-
-=item raw
-
-  $fb->query({'type' => 'shark', 'food' => 'seal'}, ['called', 'lives_in']");
-
-The query clause is supplied as hash reference of keys and values to
-be `AND`-ed together for the final result.
-
-An array reference value is treated as a sucession of 'or'-ed values
-for the provided key.
-
-All values prepended with an `!` are deemed to be a negation of the
-rest of the string as a value.
-
-A second optional reduction list of strings may be provided which
-reduces the result as above.
-
-=back
-
-Will `croak` on improperly supplied query formats.
 sub add_records {
     my ($self, @new_records) = @_;
 
@@ -198,6 +157,52 @@ sub _from_index {
 
     return $result;
 }
+
+=head2 query
+
+=over
+
+=item string
+
+  $fb->query("'type' IS 'shark' AND 'food' IS 'seal' -> 'called', 'lives_in'");
+
+The query parameters are joined with `IS` for equality testing, or
+`IS NOT` for its inverse.
+
+Multiple values for a given key can be combined with `OR`.
+
+Multiple keys are joined with AND.
+
+The optional reductions are prefaced with `->`.
+
+If no reduction is provided a list of the full record hash
+references is returned.
+If a reduction list of length 1 is provided, a list of the distinct
+values for the matching key is returned.
+If a longer reduction list is provided, a list of distinct value
+array references (in the provided key order) is returned.
+
+=item raw
+
+  $fb->query({'type' => 'shark', 'food' => 'seal'}, ['called', 'lives_in']");
+
+The query clause is supplied as hash reference of keys and values to
+be `AND`-ed together for the final result.
+
+An array reference value is treated as a sucession of 'or'-ed values
+for the provided key.
+
+All values prepended with an `!` are deemed to be a negation of the
+rest of the string as a value.
+
+A second optional reduction list of strings may be provided which
+reduces the result as above.
+
+=back
+
+Will `croak` on improperly supplied query formats.
+
+=cut
 
 sub query {
     my ($self, $query_clauses, $reduce_list) = @_;
@@ -267,6 +272,14 @@ sub query {
 
     return @results;
 }
+
+=head2 parse_query
+
+Parses the given query string and generates a query structure.
+
+Used internally.
+
+=cut
 
 sub parse_query {
     my ($self, $query) = @_;
