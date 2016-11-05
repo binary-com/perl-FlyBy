@@ -33,6 +33,8 @@ exist in a traditional datastore at runtime
 
 use Moo;
 
+no indirect;
+
 use Carp qw(croak);
 use Parse::Lex;
 use Scalar::Util qw(reftype);
