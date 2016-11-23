@@ -1,4 +1,4 @@
-requires 'Moo',         '>= 2.000';
+requires 'Moo',         '>= 1.006001';
 requires 'Parse::Lex',  '>= 2.21';
 requires 'Set::Scalar', '>= 1.29';
 requires 'Try::Tiny',   '>= 0.19';

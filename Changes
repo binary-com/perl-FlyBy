@@ -1,6 +1,9 @@
 Revision history for FlyBy
 
 {{$NEXT}}
+        - Reduced Moo dependency to 1.006001
+
+0.096  2016-11-22 09:15:04 2016 MYT
         - Updated author tests
 
 0.095  2016-11-05 16:25:53 2016 MYT
