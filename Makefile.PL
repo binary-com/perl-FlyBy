@@ -24,8 +24,6 @@ my %WriteMakefileArgs = (
     "indirect" => "0.37"
   },
   "TEST_REQUIRES" => {
-    "Devel::Cover" => "1.23",
-    "Devel::Cover::Report::Codecov" => "0.14",
     "ExtUtils::MakeMaker" => 0,
     "File::Spec" => 0,
     "IO::Handle" => 0,
@@ -43,8 +41,6 @@ my %WriteMakefileArgs = (
 
 
 my %FallbackPrereqs = (
-  "Devel::Cover" => "1.23",
-  "Devel::Cover::Report::Codecov" => "0.14",
   "ExtUtils::MakeMaker" => 0,
   "File::Spec" => 0,
   "IO::Handle" => 0,

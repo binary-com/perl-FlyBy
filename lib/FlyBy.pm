@@ -3,7 +3,7 @@ package FlyBy;
 use strict;
 use warnings;
 
-our $VERSION = '0.095';
+our $VERSION = '0.096';
 
 =encoding utf-8
 
@@ -45,11 +45,23 @@ use Try::Tiny;
 
 =cut
 
+=head2 index_sets
+
+All current index sets, as a hashref.
+
+=cut
+
 has index_sets => (
     is       => 'ro',
     init_arg => undef,
     default  => sub { {}; },
 );
+
+=head2 records
+
+Arrayref of records.
+
+=cut
 
 has records => (
     is       => 'ro',

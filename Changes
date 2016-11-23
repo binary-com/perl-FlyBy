@@ -1,6 +1,9 @@
 Revision history for FlyBy
 
 {{$NEXT}}
+        - Updated author tests
+
+0.095  2016-11-05 16:25:53 2016 MYT
         - No functional/API changes.
         - dist.ini and code cleanup to remove each()
 
