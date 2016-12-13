@@ -3,7 +3,7 @@ package FlyBy;
 use strict;
 use warnings;
 
-our $VERSION = '0.097';
+our $VERSION = '0.098';
 
 =encoding utf-8
 
